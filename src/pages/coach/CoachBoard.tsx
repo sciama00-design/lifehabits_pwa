@@ -268,7 +268,7 @@ export default function CoachBoard() {
                             required
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            placeholder="Titolo dell'annuncio importante..."
+                            placeholder="Titolo dell'annuncio..."
                             className="w-full bg-muted/30 border border-border rounded-2xl py-3 px-5 md:py-5 md:px-8 text-lg md:text-2xl font-black italic uppercase tracking-tighter text-foreground placeholder:text-muted-foreground/50 focus:bg-muted/50 focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all mb-4 md:mb-8 shadow-inner"
                         />
 

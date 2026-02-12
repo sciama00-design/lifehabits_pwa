@@ -126,26 +126,40 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description }: 
                 }
                 return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
             } else if (url.hostname.includes('vimeo.com')) {
+                // Support both /videoID and /videoID/hash formats
                 const match = url.pathname.match(/^\/(\d+)(?:\/([a-z0-9]+))?/);
                 if (match) {
                     const videoId = match[1];
-                    const hash = match[2];
+                    let hash = match[2] || url.searchParams.get('h');
+
                     const params = new URLSearchParams({
                         autoplay: '1',
                         title: '0',
                         byline: '0',
                         portrait: '0',
                         controls: '0',
-                        dnt: '1'
                     });
+
                     if (hash) params.set('h', hash);
                     return `https://player.vimeo.com/video/${videoId}?${params.toString()}`;
                 }
             }
         } catch (e) {
             if (link.includes('vimeo.com')) {
-                const videoId = link.split('vimeo.com/')[1];
-                return `https://player.vimeo.com/video/${videoId}?autoplay=1&title=0&byline=0&portrait=0&controls=0`;
+                const parts = link.split('vimeo.com/')[1]?.split(/[/?]/);
+                const videoId = parts?.[0];
+                const hash = parts?.[1]?.length > 5 ? parts[1] : undefined; // Basic heuristic for hash
+
+                const queryParams = new URLSearchParams({
+                    autoplay: '1',
+                    title: '0',
+                    byline: '0',
+                    portrait: '0',
+                    controls: '0'
+                });
+                if (hash) queryParams.set('h', hash);
+
+                return `https://player.vimeo.com/video/${videoId}?${queryParams.toString()}`;
             }
         }
         return null;
@@ -212,6 +226,7 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description }: 
                                         className="w-full h-full pointer-events-none"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
+                                        referrerPolicy="strict-origin-when-cross-origin"
                                     />
 
                                     {/* Custom Controls for Vimeo */}

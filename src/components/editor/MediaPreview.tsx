@@ -24,8 +24,22 @@ export function MediaPreview({ url, file, onClear }: MediaPreviewProps) {
 
             if (videoId) embed = `https://www.youtube.com/embed/${videoId}`;
         } else if (link.includes('vimeo.com')) {
-            videoId = link.split('vimeo.com/')[1];
-            if (videoId) embed = `https://player.vimeo.com/video/${videoId}`;
+            try {
+                const url = new URL(link);
+                const match = url.pathname.match(/^\/(\d+)(?:\/([a-z0-9]+))?/);
+                if (match) {
+                    const videoId = match[1];
+                    const hash = match[2] || url.searchParams.get('h');
+                    embed = `https://player.vimeo.com/video/${videoId}${hash ? `?h=${hash}` : ''}`;
+                }
+            } catch (e) {
+                const parts = link.split('vimeo.com/')[1]?.split(/[/?]/);
+                const videoId = parts?.[0];
+                const hash = parts?.[1]?.length > 5 ? parts[1] : undefined;
+                if (videoId) {
+                    embed = `https://player.vimeo.com/video/${videoId}${hash ? `?h=${hash}` : ''}`;
+                }
+            }
         }
 
         return embed;
@@ -88,6 +102,7 @@ export function MediaPreview({ url, file, onClear }: MediaPreviewProps) {
                         className="w-full h-full"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
+                        referrerPolicy="strict-origin-when-cross-origin"
                     />
                 </div>
             )}
