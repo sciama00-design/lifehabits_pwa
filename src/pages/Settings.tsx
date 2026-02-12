@@ -131,7 +131,7 @@ export default function Settings() {
                     <motion.section
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="space-y-6 glass-card p-8 rounded-[2rem] h-full"
+                        className="space-y-6 glass-card p-8 rounded-[2rem]"
                     >
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-xl bg-primary/10 border border-primary/10 text-primary">
@@ -287,7 +287,7 @@ export default function Settings() {
                     >
                         <h2 className="text-sm font-bold text-destructive uppercase tracking-widest mb-2">Logout</h2>
                         <p className="text-xs text-muted-foreground font-medium opacity-60 mb-6 px-4 leading-relaxed">
-                            Ti disconnetterai dal tuo account Life Habits su questo dispositivo.
+                            Ti disconnetterai dal tuo account LifeHabits su questo dispositivo.
                         </p>
                         <button
                             onClick={handleLogout}

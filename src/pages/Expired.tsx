@@ -49,7 +49,7 @@ export default function Expired() {
                 </div>
 
                 <p className="text-sm font-black text-white/40 uppercase tracking-[0.2em] leading-relaxed max-w-sm mx-auto">
-                    Il tuo abbonamento a <span className="text-primary italic">Life Habits</span> non è più attivo. Contatta il tuo coach per riattivare i servizi.
+                    Il tuo abbonamento a <span className="text-primary italic">LifeHabits</span> non è più attivo. Contatta il tuo coach per riattivare i servizi.
                 </p>
 
                 <div className="pt-8">

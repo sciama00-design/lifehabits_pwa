@@ -76,7 +76,7 @@ export default function CoachLibrary() {
                     <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground leading-none">
                         Libreria<span className="text-primary italic">Contenuti</span>
                     </h1>
-                    <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-2 sm:mt-3 opacity-60">Gestione Libreria Wellness</p>
+                    <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-2 sm:mt-3 opacity-60">Gestione Libreria LifeHabits</p>
                 </div>
             </header>
 

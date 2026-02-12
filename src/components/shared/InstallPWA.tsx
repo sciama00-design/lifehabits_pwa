@@ -23,19 +23,26 @@ export function InstallPWA() {
         return () => window.removeEventListener('beforeinstallprompt', handler);
     }, []);
 
-    const onClick = (e: any) => {
+    const onClick = async (e: any) => {
         e.preventDefault();
         if (!promptInstall) return;
-        promptInstall.prompt();
-        promptInstall.userChoice.then((choiceResult: { outcome: string }) => {
+
+        try {
+            await promptInstall.prompt();
+            const choiceResult = await promptInstall.userChoice;
+
             if (choiceResult.outcome === 'accepted') {
                 console.log('User accepted the A2HS prompt');
-                setIsVisible(false);
             } else {
                 console.log('User dismissed the A2HS prompt');
             }
+        } catch (err) {
+            console.error('Error during PWA installation:', err);
+        } finally {
+            // Always hide the prompt after interaction as the event is consumed
+            setIsVisible(false);
             setPromptInstall(null);
-        });
+        }
     };
 
     const handleDismiss = () => {
@@ -68,7 +75,7 @@ export function InstallPWA() {
                             <Download size={24} />
                         </div>
                         <div className="pt-0.5">
-                            <h3 className="text-sm font-bold text-white mb-1">Installa NT Wellness</h3>
+                            <h3 className="text-sm font-bold text-white mb-1">Installa LifeHabits</h3>
                             <p className="text-[11px] text-white/50 leading-relaxed font-medium"> Scarica l'app sul tuo dispositivo per un accesso rapido e l'uso offline. </p>
                         </div>
                     </div>
