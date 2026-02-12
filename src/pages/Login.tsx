@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { Mail, Lock, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function Login() {
     const { user, profile, loading: authLoading } = useAuth();
@@ -55,10 +56,36 @@ export default function Login() {
         }
     };
 
+    const [showTimeout, setShowTimeout] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (authLoading && !user) {
+                setShowTimeout(true);
+            }
+        }, 8000);
+        return () => clearTimeout(timer);
+    }, [authLoading, user]);
+
     if (authLoading && !user) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-background premium-gradient-bg">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex min-h-screen flex-col items-center justify-center bg-background premium-gradient-bg p-6">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                {showTimeout && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center space-y-4"
+                    >
+                        <p className="text-xs text-muted-foreground">Il caricamento sta impiegando più del previsto...</p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="text-[10px] font-bold uppercase tracking-widest text-primary hover:underline"
+                        >
+                            Aggiorna Pagina
+                        </button>
+                    </motion.div>
+                )}
             </div>
         );
     }

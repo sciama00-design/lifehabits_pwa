@@ -56,8 +56,26 @@ export async function getVimeoThumbnail(link: string): Promise<string | null> {
 
 export async function getYoutubeThumbnail(link: string): Promise<string | null> {
     let videoId = '';
-    if (link.includes('v=')) videoId = link.split('v=')[1]?.split('&')[0];
-    else if (link.includes('youtu.be/')) videoId = link.split('youtu.be/')[1]?.split('?')[0];
+    try {
+        const url = new URL(link);
+        if (url.hostname.includes('youtu.be')) {
+            videoId = url.pathname.slice(1);
+        } else if (url.pathname.includes('/shorts/')) {
+            videoId = url.pathname.split('/shorts/')[1]?.split(/[?#]/)[0];
+        } else if (url.pathname.includes('/live/')) {
+            videoId = url.pathname.split('/live/')[1]?.split(/[?#]/)[0];
+        } else {
+            videoId = url.searchParams.get('v') || '';
+        }
+
+        if (!videoId && url.pathname.includes('/embed/')) {
+            videoId = url.pathname.split('/embed/')[1]?.split(/[?#]/)[0];
+        }
+    } catch (e) {
+        if (link.includes('v=')) videoId = link.split('v=')[1]?.split('&')[0];
+        else if (link.includes('youtu.be/')) videoId = link.split('youtu.be/')[1]?.split(/[?#]/)[0];
+        else if (link.includes('/shorts/')) videoId = link.split('/shorts/')[1]?.split(/[?#]/)[0];
+    }
 
     if (!videoId) return null;
     return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;

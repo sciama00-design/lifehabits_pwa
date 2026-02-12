@@ -121,10 +121,29 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description }: 
                 let videoId = '';
                 if (url.hostname.includes('youtu.be')) {
                     videoId = url.pathname.slice(1);
+                } else if (url.pathname.includes('/shorts/')) {
+                    videoId = url.pathname.split('/shorts/')[1]?.split(/[?#]/)[0];
+                } else if (url.pathname.includes('/live/')) {
+                    videoId = url.pathname.split('/live/')[1]?.split(/[?#]/)[0];
                 } else {
                     videoId = url.searchParams.get('v') || '';
                 }
-                return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+
+                if (!videoId && url.pathname.includes('/embed/')) {
+                    videoId = url.pathname.split('/embed/')[1]?.split(/[?#]/)[0];
+                }
+
+                if (videoId) {
+                    const params = new URLSearchParams({
+                        autoplay: '1',
+                        rel: '0',
+                        modestbranding: '1',
+                        mute: '0',
+                        controls: '1',
+                        origin: window.location.origin
+                    });
+                    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+                }
             } else if (url.hostname.includes('vimeo.com')) {
                 // Support both /videoID and /videoID/hash formats
                 const match = url.pathname.match(/^\/(\d+)(?:\/([a-z0-9]+))?/);
@@ -160,6 +179,16 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description }: 
                 if (hash) queryParams.set('h', hash);
 
                 return `https://player.vimeo.com/video/${videoId}?${queryParams.toString()}`;
+            } else if (link.includes('youtube.com') || link.includes('youtu.be')) {
+                // Fallback for non-URL-parsable strings if any
+                let videoId = '';
+                if (link.includes('v=')) videoId = link.split('v=')[1]?.split('&')[0];
+                else if (link.includes('youtu.be/')) videoId = link.split('youtu.be/')[1]?.split('?')[0];
+                else if (link.includes('/shorts/')) videoId = link.split('/shorts/')[1]?.split(/[?#]/)[0];
+
+                if (videoId) {
+                    return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&controls=1`;
+                }
             }
         }
         return null;
@@ -223,7 +252,7 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description }: 
                                     <iframe
                                         ref={iframeRef}
                                         src={embedUrl}
-                                        className="w-full h-full pointer-events-none"
+                                        className="w-full h-full"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
                                         referrerPolicy="strict-origin-when-cross-origin"

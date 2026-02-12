@@ -40,6 +40,8 @@ export function ContentEditorCard({
         return lowerUrl.includes('youtube.com') ||
             lowerUrl.includes('youtu.be') ||
             lowerUrl.includes('vimeo.com') ||
+            lowerUrl.includes('/shorts/') ||
+            lowerUrl.includes('/live/') ||
             lowerUrl.match(/\.(mp4|mov|webm|mkv)(\?.*)?$/);
     };
 

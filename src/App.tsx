@@ -16,53 +16,56 @@ import ClientDashboard from '@/pages/client/ClientDashboard';
 import ClientHabits from '@/pages/client/ClientHabits';
 import ClientVideos from '@/pages/client/ClientVideos';
 import { CoachSelectionProvider } from '@/context/CoachSelectionContext';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { InstallPWA } from '@/components/shared/InstallPWA';
 
 function App() {
   return (
-    <BrowserRouter>
-      <InstallPWA />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/scaduto" element={<Expired />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <InstallPWA />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/scaduto" element={<Expired />} />
 
-        {/* Client Routes */}
-        <Route element={
-          <SubscriptionGuard>
-            <CoachSelectionProvider>
-              <ClientLayout />
-            </CoachSelectionProvider>
-          </SubscriptionGuard>
-        }>
-          <Route path="/" element={<ClientDashboard />} />
-          <Route path="/habits" element={<ClientHabits />} />
-          <Route path="/videos" element={<ClientVideos />} />
-          <Route path="profile" element={<Settings />} />
-        </Route>
+          {/* Client Routes */}
+          <Route element={
+            <SubscriptionGuard>
+              <CoachSelectionProvider>
+                <ClientLayout />
+              </CoachSelectionProvider>
+            </SubscriptionGuard>
+          }>
+            <Route path="/" element={<ClientDashboard />} />
+            <Route path="/habits" element={<ClientHabits />} />
+            <Route path="/videos" element={<ClientVideos />} />
+            <Route path="profile" element={<Settings />} />
+          </Route>
 
-        {/* Coach Routes */}
-        <Route
-          path="/coach"
-          element={
-            <CoachGuard>
-              <CoachLayout />
-            </CoachGuard>
-          }
-        >
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<CoachDashboard />} />
-          <Route path="clients" element={<CoachClients />} />
-          <Route path="clients/:clientId" element={<CoachClientDetail />} />
-          <Route path="library" element={<CoachLibrary />} />
-          <Route path="board" element={<CoachBoard />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
+          {/* Coach Routes */}
+          <Route
+            path="/coach"
+            element={
+              <CoachGuard>
+                <CoachLayout />
+              </CoachGuard>
+            }
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<CoachDashboard />} />
+            <Route path="clients" element={<CoachClients />} />
+            <Route path="clients/:clientId" element={<CoachClientDetail />} />
+            <Route path="library" element={<CoachLibrary />} />
+            <Route path="board" element={<CoachBoard />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
