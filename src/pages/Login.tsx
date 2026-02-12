@@ -43,7 +43,7 @@ export default function Login() {
         setLoading(true);
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/reset-password`,
+                redirectTo: 'https://lifehabits-pwa.pages.dev/reset-password',
             });
             if (error) throw error;
             setResetSent(true);
@@ -69,14 +69,14 @@ export default function Login() {
                 <div className="flex flex-col items-center text-center">
                     <div className="mb-6 relative">
                         <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
-                        <img src="/icon.png" alt="Life Habits" className="relative h-16 w-16 object-contain" />
+                        <img src="/icon.png" alt="LifeHabits" className="relative h-16 w-16 object-contain" />
                     </div>
 
                     <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-1">
                         Life<span className="text-primary italic">Habits</span>
                     </h1>
                     <p className="mt-2 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">
-                        {isResetMode ? 'Recupero Credenziali' : 'Wellness at 360°'}
+                        {isResetMode ? 'Recupero Credenziali' : 'LifeHabits at 360°'}
                     </p>
                 </div>
 
@@ -168,7 +168,7 @@ export default function Login() {
                                 </button>
                             ) : (
                                 <p className="text-[10px] text-muted-foreground/40 italic">
-                                    Life Habits - Wellness Solution
+                                    LifeHabits Solution
                                 </p>
                             )}
                         </div>
