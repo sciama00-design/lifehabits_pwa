@@ -25,11 +25,13 @@ export function SubscriptionGuard({ children }: { children: React.ReactNode }) {
         if (!authLoading) {
             if (profile?.role === 'client') {
                 fetchPlans(profile.id);
-            } else if (profile) {
+            } else if (profile?.role === 'coach') {
+                // Coaches shouldn't be in SubscriptionGuard (client area)
+                // but if they hit it, we should let the check below handle it or redirect
                 setLoading(false);
             } else {
-                // If not loading but no profile, we should redirect to login
-                // This is already handled by the check below, but we can be explicit if needed
+                // No profile found, stop loading so we can redirect to login
+                setLoading(false);
             }
         }
     }, [profile, authLoading]);
@@ -82,7 +84,7 @@ export function SubscriptionGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (profile.role === 'coach') {
-        return <>{children}</>;
+        return <Navigate to="/coach/dashboard" replace />;
     }
 
     // Use local date for comparison to avoid UTC shifts
