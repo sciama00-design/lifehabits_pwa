@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { LogOut, Home, Settings, Play, Leaf } from 'lucide-react';
+import { Home, Settings, Play, Leaf } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import clsx from 'clsx';
 import { MobileBottomNav } from './MobileBottomNav';
@@ -67,9 +67,6 @@ export default function ClientLayout() {
                             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/20">
                                 {profile?.full_name?.charAt(0) || 'C'}
                             </div>
-                            <button onClick={handleLogout} className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-lg hover:bg-destructive/10">
-                                <LogOut className="h-4.5 w-4.5" />
-                            </button>
                         </div>
                     </div>
                 </header>

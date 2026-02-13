@@ -169,7 +169,7 @@ export default function Settings() {
                         className="space-y-6 glass-card p-8 rounded-[2rem]"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-secondary/10 border border-secondary/10 text-secondary">
+                            <div className="p-2 rounded-xl bg-primary/10 border border-primary/10 text-primary">
                                 <Monitor className="h-4 w-4" />
                             </div>
                             <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Preferenze Visive</h2>
