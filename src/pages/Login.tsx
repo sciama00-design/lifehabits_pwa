@@ -94,9 +94,9 @@ export default function Login() {
         <div className="flex min-h-screen items-center justify-center bg-background p-6 premium-gradient-bg">
             <div className="w-full max-w-sm space-y-8 glass-card p-10 rounded-3xl shadow-2xl">
                 <div className="flex flex-col items-center text-center">
-                    <div className="mb-6 relative">
+                    <div className="mb-2 relative">
                         <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
-                        <img src="/icon.png" alt="LifeHabits" className="relative h-16 w-16 object-contain" />
+                        <img src="/icon.png" alt="LifeHabits" className="relative h-32 w-32 object-contain" />
                     </div>
 
                     <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-1">
