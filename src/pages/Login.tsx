@@ -103,7 +103,7 @@ export default function Login() {
                         Life<span className="text-primary italic">Habits</span>
                     </h1>
                     <p className="mt-2 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">
-                        {isResetMode ? 'Recupero Credenziali' : 'LifeHabits at 360°'}
+                        {isResetMode ? 'Recupero Credenziali' : 'Wellness at 360°'}
                     </p>
                 </div>
 
