@@ -38,6 +38,10 @@ export default function ResetPassword() {
         try {
             const { error } = await supabase.auth.updateUser({ password });
             if (error) throw error;
+
+            // Sign out immediately after reset to prevent auto-login
+            await supabase.auth.signOut();
+
             setIsSuccess(true);
 
             // Redirect after 3 seconds
@@ -75,7 +79,7 @@ export default function ResetPassword() {
                         <div className="space-y-4">
                             <h2 className="text-2xl font-black italic tracking-tighter uppercase text-white">Configurazione <span className="text-emerald-500 text-3xl">OK</span></h2>
                             <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] leading-relaxed">
-                                Password aggiornata. Verrai reindirizzato al login Hub tra pochi istanti.
+                                Password aggiornata. Verrai reindirizzato al login tra pochi istanti per accedere con le nuove credenziali.
                             </p>
                         </div>
                     </div>
