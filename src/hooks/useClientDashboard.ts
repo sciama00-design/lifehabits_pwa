@@ -10,7 +10,7 @@ export function useClientDashboard() {
     const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [boardPosts, setBoardPosts] = useState<BoardPost[]>([]);
     const [clientInfo, setClientInfo] = useState<ClientInfo | null>(null);
-    const [allAssignmentsMeta, setAllAssignmentsMeta] = useState<Pick<Assignment, 'id' | 'plan_id' | 'type' | 'completed' | 'content_id'>[]>([]);
+    const [allAssignmentsMeta, setAllAssignmentsMeta] = useState<Pick<Assignment, 'id' | 'plan_id' | 'type' | 'completed' | 'title'>[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +55,7 @@ export function useClientDashboard() {
             // 3b. Get All Assignments Metadata for Counts (lightweight)
             const { data: metaData, error: metaError } = await supabase
                 .from('assignments')
-                .select('id, plan_id, type, completed, content_id')
+                .select('id, plan_id, type, completed, title')
                 .eq('client_id', profile!.id);
 
             if (metaError) throw metaError;
@@ -124,7 +124,7 @@ export function useClientDashboard() {
         : allAssignmentsMeta.filter(a => a.plan_id === selectedPlanId);
 
     const stats = {
-        habits: new Set(filteredAllMeta.filter(a => a.type === 'habit' && a.content_id).map(a => a.content_id)).size,
+        habits: new Set(filteredAllMeta.filter(a => a.type === 'habit').map(a => a.title)).size,
         videos: filteredAllMeta.filter(a => a.type === 'video' && !a.completed).length
     };
 

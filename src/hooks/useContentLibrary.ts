@@ -100,20 +100,38 @@ export function useContentLibrary() {
 
     async function deleteContent(id: string) {
         try {
-            // 1. Check if used in assignments
-            const { count, error: countError } = await supabase
-                .from('assignments')
-                .select('*', { count: 'exact', head: true })
-                .eq('content_id', id);
+            // 1. Get content info to check for storage cleanup
+            const itemToDelete = content.find(c => c.id === id);
+            if (!itemToDelete) return false;
 
-            if (countError) throw countError;
+            // 2. Check if the media files are used in ANY assignment (by URL, since content_id is gone)
+            // We need to check both link (for video/pdf) and thumbnail_url
+            let keepLink = false;
+            let keepThumbnail = false;
 
-            if (count && count > 0) {
-                throw new Error(`Impossibile eliminare: questo contenuto è utilizzato in ${count} assegnazioni.`);
+            if (itemToDelete.link) {
+                const { count, error } = await supabase
+                    .from('assignments')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('link', itemToDelete.link);
+
+                if (!error && count && count > 0) {
+                    keepLink = true;
+                    console.log('Skipping link deletion: used in assignments');
+                }
             }
 
-            // 2. Get content info for storage cleanup
-            const itemToDelete = content.find(c => c.id === id);
+            if (itemToDelete.thumbnail_url) {
+                const { count, error } = await supabase
+                    .from('assignments')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('thumbnail_url', itemToDelete.thumbnail_url);
+
+                if (!error && count && count > 0) {
+                    keepThumbnail = true;
+                    console.log('Skipping thumbnail deletion: used in assignments');
+                }
+            }
 
             // 3. Delete from DB
             const { error } = await supabase
@@ -123,23 +141,21 @@ export function useContentLibrary() {
 
             if (error) throw error;
 
-            // 4. Cleanup Storage if needed
-            if (itemToDelete?.link || itemToDelete?.thumbnail_url) {
-                import('@/lib/storage').then(({ deleteFileFromUrl }) => {
-                    if (itemToDelete.link) {
-                        const isStorageUrl = itemToDelete.link.includes('supabase.co') || itemToDelete.link.includes('/storage/v1/object/public/');
-                        if (isStorageUrl) {
-                            deleteFileFromUrl(itemToDelete.link!).catch(err => console.error('Failed to cleanup file:', err));
-                        }
+            // 4. Cleanup Storage if needed AND not used elsewhere
+            import('@/lib/storage').then(({ deleteFileFromUrl }) => {
+                if (itemToDelete.link && !keepLink) {
+                    const isStorageUrl = itemToDelete.link.includes('supabase.co') || itemToDelete.link.includes('/storage/v1/object/public/');
+                    if (isStorageUrl) {
+                        deleteFileFromUrl(itemToDelete.link).catch(err => console.error('Failed to cleanup file:', err));
                     }
-                    if (itemToDelete.thumbnail_url) {
-                        const isStorageUrl = itemToDelete.thumbnail_url.includes('supabase.co') || itemToDelete.thumbnail_url.includes('/storage/v1/object/public/');
-                        if (isStorageUrl) {
-                            deleteFileFromUrl(itemToDelete.thumbnail_url!).catch(err => console.error('Failed to cleanup thumbnail:', err));
-                        }
+                }
+                if (itemToDelete.thumbnail_url && !keepThumbnail) {
+                    const isStorageUrl = itemToDelete.thumbnail_url.includes('supabase.co') || itemToDelete.thumbnail_url.includes('/storage/v1/object/public/');
+                    if (isStorageUrl) {
+                        deleteFileFromUrl(itemToDelete.thumbnail_url).catch(err => console.error('Failed to cleanup thumbnail:', err));
                     }
-                });
-            }
+                }
+            });
 
             setContent(content.filter(c => c.id !== id));
             return true;

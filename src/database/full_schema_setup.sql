@@ -85,7 +85,6 @@ CREATE TABLE public.assignments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   coach_id uuid NOT NULL,
   client_id uuid NOT NULL,
-  content_id uuid,
   title text NOT NULL,
   description text,
   link text,
@@ -96,10 +95,8 @@ CREATE TABLE public.assignments (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT assignments_pkey PRIMARY KEY (id),
   CONSTRAINT assignments_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.profiles(id) ON DELETE CASCADE,
-  CONSTRAINT assignments_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.profiles(id) ON DELETE CASCADE,
-  CONSTRAINT assignments_content_id_fkey FOREIGN KEY (content_id) REFERENCES public.content_library(id) ON DELETE SET NULL
+  CONSTRAINT assignments_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.profiles(id) ON DELETE CASCADE
 );
-
 -- 7. BOARD POSTS Table
 CREATE TABLE public.board_posts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -141,7 +138,6 @@ CREATE POLICY "Clients can view their own client info" ON public.clients_info FO
 -- Content Library Policies
 CREATE POLICY "Coaches can manage their own content" ON public.content_library FOR ALL USING (coach_id = auth.uid());
 CREATE POLICY "Coaches can view all content" ON public.content_library FOR SELECT USING (public.is_coach());
-CREATE POLICY "Clients can view content linked to them" ON public.content_library FOR SELECT USING (EXISTS (SELECT 1 FROM public.assignments WHERE client_id = auth.uid() AND content_id = id));
 
 -- Subscription Plans Policies
 CREATE POLICY "Coaches can manage their own plans" ON public.subscription_plans FOR ALL USING (public.is_coach_of_client(client_id));

@@ -50,7 +50,6 @@ export interface Assignment {
     id: string;
     coach_id: string;
     client_id: string;
-    content_id: string | null;
     title: string;
     description: string | null;
     link: string | null;

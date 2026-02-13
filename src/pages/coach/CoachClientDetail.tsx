@@ -144,7 +144,6 @@ export default function CoachClientDetail() {
                 thumbnail_url: data.thumbnail_url || null,
                 type: data.type === 'video' ? 'video' : 'habit',
                 scheduled_date: format(new Date(), 'yyyy-MM-dd'),
-                content_id: selectedLibraryItem?.id || null,
                 completed: false,
             });
         }
@@ -197,9 +196,11 @@ export default function CoachClientDetail() {
         refreshPlans();
     };
 
-    const filteredLibrary = libraryContent.filter(item =>
-        (activeTab === 'video' ? item.type !== 'habit' : item.type === 'habit')
-    );
+    const filteredLibrary = libraryContent.filter(item => {
+        if (activeTab === 'video') return item.type === 'video';
+        // For 'abitudini', include both habits and pdfs
+        return item.type === 'habit' || item.type === 'pdf';
+    });
 
     return (
         <div className="min-h-screen bg-background pb-20 sm:pb-24">
@@ -637,7 +638,7 @@ export default function CoachClientDetail() {
                                     {(selectedLibraryItem || editingAssignment) && (
                                         <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-between">
                                             <span className="text-xs font-bold text-primary truncate flex-1 mr-2">
-                                                {editingAssignment ? 'Modifica contenuto' : `Importato: ${selectedLibraryItem?.title}`}
+                                                {editingAssignment ? 'Modifica contenuto' : `Selezionato: ${selectedLibraryItem?.title}`}
                                             </span>
                                             <button
                                                 onClick={() => {
