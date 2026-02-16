@@ -145,8 +145,8 @@ export default function CoachClients() {
                         </button>
                         <h3 className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.4em] text-primary mb-2">Registration Hub</h3>
                         <h2 className="text-3xl sm:text-4xl font-black italic tracking-tighter uppercase mb-3 sm:mb-4 text-foreground">Nuovo <span className="text-primary">Atleta</span></h2>
-                        <p className="mb-8 sm:mb-10 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                            Credenziali provvisorie: <code className="bg-primary/10 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-primary border border-primary/20">lifehabits2026</code>
+                        <p className="mb-8 sm:mb-10 text-[9px] sm:text-[10px] font-black tracking-[0.2em] text-muted-foreground">
+                            CREDENZIALI PROVVISORIE: <code className="bg-primary/10 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-primary border border-primary/20 lowercase font-mono">lifehabits2026</code>
                         </p>
 
                         <form onSubmit={handleAddClient} className="space-y-8">

@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useRef } from 'react';
 import Player from '@vimeo/player';
 import clsx from 'clsx';
+import { ProtectedYouTubePlayer } from './ProtectedYouTubePlayer';
+import { extractYouTubeId } from '@/lib/youtubeProtection';
 
 interface MediaViewerProps {
     isOpen: boolean;
@@ -196,6 +198,8 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description }: 
 
     const isVideo = type === 'video' && url;
     const isVimeo = url?.includes('vimeo.com');
+    const isYouTube = url ? (url.includes('youtube.com') || url.includes('youtu.be')) : false;
+    const youtubeVideoId = (isYouTube && url) ? extractYouTubeId(url) : null;
     const isPDF = type === 'pdf' || (url && url.toLowerCase().split('?')[0].endsWith('.pdf'));
 
     const isImage = url && (
@@ -240,7 +244,19 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description }: 
                     {/* Content Area */}
                     <div className="w-full h-full flex flex-col items-center bg-black/20">
                         <div className="w-full flex-1 flex items-center justify-center p-4 pt-24 pb-4 overflow-hidden">
-                            {isVideo && embedUrl ? (
+                            {/* Protected YouTube Player */}
+                            {isVideo && isYouTube && youtubeVideoId ? (
+                                <div
+                                    className="relative group w-full sm:w-[360px] max-w-lg aspect-[9/16] max-h-[75vh] rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 bg-black"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <ProtectedYouTubePlayer
+                                        videoId={youtubeVideoId}
+                                        className="w-full h-full"
+                                        autoplay={true}
+                                    />
+                                </div>
+                            ) : isVideo && embedUrl ? (
                                 <div
                                     className="relative group w-full sm:w-[360px] max-w-lg aspect-[9/16] max-h-[75vh] rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 bg-black cursor-pointer"
                                     onClick={(e) => {
