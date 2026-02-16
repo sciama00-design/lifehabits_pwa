@@ -14,9 +14,10 @@ interface MediaViewerProps {
     url: string | null;
     title: string;
     description?: string | null;
+    thumbnailUrl?: string | null;
 }
 
-export function MediaViewer({ isOpen, onClose, type, url, title, description }: MediaViewerProps) {
+export function MediaViewer({ isOpen, onClose, type, url, title, description, thumbnailUrl }: MediaViewerProps) {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isSeeking, setIsSeeking] = useState(false);
@@ -254,6 +255,7 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description }: 
                                         videoId={youtubeVideoId}
                                         className="w-full h-full"
                                         autoplay={true}
+                                        thumbnailUrl={thumbnailUrl}
                                     />
                                 </div>
                             ) : isVideo && embedUrl ? (

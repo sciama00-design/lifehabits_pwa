@@ -14,6 +14,7 @@ interface ProtectedYouTubePlayerProps {
     videoId: string;
     className?: string;
     autoplay?: boolean;
+    thumbnailUrl?: string | null;
     onTimeUpdate?: (currentTime: number, duration: number) => void;
     onReady?: () => void;
 }
@@ -48,6 +49,7 @@ export function ProtectedYouTubePlayer({
     videoId,
     className,
     autoplay = true,
+    thumbnailUrl,
     onTimeUpdate,
     onReady,
 }: ProtectedYouTubePlayerProps) {
@@ -60,8 +62,9 @@ export function ProtectedYouTubePlayer({
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
-    const [showControls, setShowControls] = useState(true);
+    const [showControls, setShowControls] = useState(false);
     const [isReady, setIsReady] = useState(false);
+    const [isEnded, setIsEnded] = useState(false);
 
     const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -137,13 +140,15 @@ export function ProtectedYouTubePlayer({
                         switch (e.data) {
                             case window.YT.PlayerState.PLAYING:
                                 setIsPlaying(true);
+                                setIsEnded(false);
                                 break;
                             case window.YT.PlayerState.PAUSED:
                                 setIsPlaying(false);
                                 break;
                             case window.YT.PlayerState.ENDED:
                                 setIsPlaying(false);
-                                setShowControls(true);
+                                setIsEnded(true);
+                                setShowControls(false);
                                 break;
                         }
                     },
@@ -220,16 +225,18 @@ export function ProtectedYouTubePlayer({
                 style={{ pointerEvents: 'none' }}
             />
 
-            {/* Transparent overlay — blocks direct iframe interaction */}
+            {/* Transparent overlay — blocks direct iframe interaction, toggles controls on tap */}
             <div
                 className="absolute inset-0 z-10 cursor-pointer"
                 onClick={(e) => {
                     e.stopPropagation();
-                    togglePlay();
-                    resetHideTimeout();
+                    if (showControls) {
+                        setShowControls(false);
+                        if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+                    } else {
+                        resetHideTimeout();
+                    }
                 }}
-                onMouseMove={resetHideTimeout}
-                onTouchStart={resetHideTimeout}
                 aria-hidden="true"
             />
 
@@ -237,6 +244,32 @@ export function ProtectedYouTubePlayer({
             {!isReady && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-black">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                </div>
+            )}
+
+            {/* End screen — thumbnail + replay */}
+            {isEnded && (
+                <div
+                    className="absolute inset-0 z-30 flex items-center justify-center bg-black cursor-pointer"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        playerRef.current?.seekTo(0, true);
+                        playerRef.current?.playVideo();
+                    }}
+                >
+                    {thumbnailUrl && (
+                        <img
+                            src={thumbnailUrl}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover opacity-80"
+                        />
+                    )}
+                    <div className="relative flex flex-col items-center gap-3">
+                        <div className="h-14 w-14 rounded-full bg-white/90 flex items-center justify-center shadow-2xl transition-transform hover:scale-110 active:scale-95">
+                            <Play className="w-6 h-6 text-black fill-current ml-0.5" />
+                        </div>
+                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">Riproduci</span>
+                    </div>
                 </div>
             )}
 

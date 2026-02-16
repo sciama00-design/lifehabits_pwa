@@ -264,6 +264,7 @@ export function ContentCard({
                 url={item.link}
                 title={item.title}
                 description={item.description}
+                thumbnailUrl={item.thumbnail_url || getThumbnailUrl(item.link)}
             />
         </>
     );
