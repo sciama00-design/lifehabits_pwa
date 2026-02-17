@@ -200,7 +200,11 @@ export function ProtectedYouTubePlayer({
     };
 
     const handleFullscreen = () => {
-        containerRef.current?.requestFullscreen?.();
+        if (!document.fullscreenElement) {
+            containerRef.current?.requestFullscreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
     };
 
     const formatTime = (seconds: number) => {

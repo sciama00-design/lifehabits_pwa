@@ -117,6 +117,15 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description, th
         }
     };
 
+    const handleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            const videoContainer = iframeRef.current?.parentElement;
+            videoContainer?.requestFullscreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
+    };
+
     const getEmbedUrl = (link: string) => {
         try {
             const url = new URL(link);
@@ -330,7 +339,7 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description, th
                                                             className="text-white/40 hover:text-white transition-colors"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                iframeRef.current?.parentElement?.requestFullscreen();
+                                                                handleFullscreen();
                                                             }}
                                                         >
                                                             <Maximize2 className="w-5 h-5" />
