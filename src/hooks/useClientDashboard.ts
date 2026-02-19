@@ -73,7 +73,7 @@ export function useClientDashboard() {
                     .from('board_posts')
                     .select('*, coach:profiles!coach_id(*)')
                     .in('coach_id', coachIds)
-                    .gte('expires_at', now.toISOString())
+                    .or(`expires_at.gte.${now.toISOString()},expires_at.is.null`)
                     .order('created_at', { ascending: false });
 
                 if (postError) throw postError;

@@ -60,6 +60,22 @@ export function useBoardPosts(clientId?: string) {
 
             if (error) throw error;
             setPosts(prev => [data, ...prev]);
+
+            // Trigger Push Notification
+            supabase.functions.invoke('push-dispatcher', {
+                body: {
+                    type: 'announcement',
+                    coach_id: user.id,
+                    target_client_ids: post.target_client_ids,
+                    title: post.title || 'Nuovo annuncio in bacheca',
+                    body: post.content ? (post.content.replace(/<[^>]*>?/gm, '').substring(0, 100) + (post.content.length > 100 ? '...' : '')) : 'Controlla le novità!',
+                    url: '/client/board'
+                }
+            }).then(({ data, error }) => {
+                if (error) console.error('Push Dispatcher Error:', error);
+                else console.log('Push Dispatcher Response:', data);
+            }).catch(console.error); // Fire and forget
+
             return data;
         } catch (err: any) {
             setError(err.message);

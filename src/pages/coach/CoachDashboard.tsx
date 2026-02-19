@@ -3,6 +3,7 @@ import { useClients } from '@/hooks/useClients';
 import CoachBoard from './CoachBoard';
 import { Users, Clock, AlertTriangle } from 'lucide-react';
 import { addDays, isAfter, isBefore } from 'date-fns';
+import { GlobalNotificationsManager } from '@/components/coach/GlobalNotificationsManager';
 
 export default function CoachDashboard() {
     const { profile } = useAuth();
@@ -83,8 +84,13 @@ export default function CoachDashboard() {
                 </div>
             </div>
 
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <CoachBoard />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <CoachBoard />
+                </div>
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                    <GlobalNotificationsManager />
+                </div>
             </div>
         </div>
     );

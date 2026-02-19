@@ -1,0 +1,4 @@
+project_id = "gkbxiyzmtrxukpoaqdqn"
+
+[functions.push-scheduler]
+verify_jwt = true

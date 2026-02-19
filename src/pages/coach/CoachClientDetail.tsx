@@ -25,8 +25,10 @@ import {
     LayoutGrid,
     Calendar,
     Leaf,
-    Check
+    Check,
+    Bell
 } from 'lucide-react';
+import { ClientNotificationsManager } from '@/components/coach/ClientNotificationsManager';
 import clsx from 'clsx';
 import type { ContentData } from '@/components/editor/ContentEditorCard';
 import { ContentEditorCard } from '@/components/editor/ContentEditorCard';
@@ -47,7 +49,7 @@ const safeFormat = (date: string | null | undefined, formatStr: string) => {
     }
 };
 
-type Tab = 'anagrafica' | 'bacheca' | 'abitudini' | 'video';
+type Tab = 'anagrafica' | 'bacheca' | 'abitudini' | 'video' | 'notifiche';
 
 export default function CoachClientDetail() {
     const { clientId } = useParams<{ clientId: string }>();
@@ -241,6 +243,7 @@ export default function CoachClientDetail() {
                         <TabButton active={activeTab === 'bacheca'} onClick={() => setActiveTab('bacheca')} icon={<MessageSquare className="h-4 w-4" />} label="Bacheca" />
                         <TabButton active={activeTab === 'abitudini'} onClick={() => setActiveTab('abitudini')} icon={<Leaf className="h-4 w-4" />} label="Abitudini" />
                         <TabButton active={activeTab === 'video'} onClick={() => setActiveTab('video')} icon={<Video className="h-4 w-4" />} label="Video" />
+                        <TabButton active={activeTab === 'notifiche'} onClick={() => setActiveTab('notifiche')} icon={<Bell className="h-4 w-4" />} label="Notifiche" />
                     </div>
                 </div>
             </div>
@@ -532,6 +535,17 @@ export default function CoachClientDetail() {
                             </div>
                         </motion.div>
                     )}
+
+                    {activeTab === 'notifiche' && (
+                        <motion.div
+                            key="notifiche"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                        >
+                            <ClientNotificationsManager clientId={clientId || ''} />
+                        </motion.div>
+                    )}
                 </AnimatePresence>
             </div>
 
@@ -568,234 +582,240 @@ export default function CoachClientDetail() {
             {/* Modals - Optimized for Mobile Full Screen / Sheets */}
 
             {/* Assignment / Content Modal */}
-            {isAssignmentModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
-                    <div className="w-full h-[95vh] sm:h-auto sm:max-h-[85vh] sm:max-w-2xl bg-background sm:rounded-3xl rounded-t-3xl sm:border border-border flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-border">
-                            <div>
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">
-                                    {editingAssignment ? 'Modifica' : 'Nuovo'}
-                                </h3>
-                                <h2 className="text-xl font-black italic tracking-tighter uppercase text-foreground">
-                                    {activeTab === 'abitudini' ? <span className="flex items-center gap-2">Abitudine <Leaf className="h-5 w-5 text-primary" /></span> : 'Video'}
-                                </h2>
-                            </div>
-                            <button
-                                onClick={() => setIsAssignmentModalOpen(false)}
-                                className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        {/* Mode Switcher */}
-                        <div className="px-6 py-4">
-                            <div className="grid grid-cols-2 bg-muted/30 p-1 rounded-2xl">
+            {
+                isAssignmentModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
+                        <div className="w-full h-[95vh] sm:h-auto sm:max-h-[85vh] sm:max-w-2xl bg-background sm:rounded-3xl rounded-t-3xl sm:border border-border flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between p-6 border-b border-border">
+                                <div>
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">
+                                        {editingAssignment ? 'Modifica' : 'Nuovo'}
+                                    </h3>
+                                    <h2 className="text-xl font-black italic tracking-tighter uppercase text-foreground">
+                                        {activeTab === 'abitudini' ? <span className="flex items-center gap-2">Abitudine <Leaf className="h-5 w-5 text-primary" /></span> : 'Video'}
+                                    </h2>
+                                </div>
                                 <button
-                                    onClick={() => setViewMode('create')}
-                                    className={clsx("py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", viewMode === 'create' ? "bg-background text-foreground shadow-lg" : "text-muted-foreground")}
+                                    onClick={() => setIsAssignmentModalOpen(false)}
+                                    className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted"
                                 >
-                                    Crea
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('library')}
-                                    className={clsx("py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", viewMode === 'library' ? "bg-background text-foreground shadow-lg" : "text-muted-foreground")}
-                                >
-                                    Libreria
+                                    <X className="h-5 w-5" />
                                 </button>
                             </div>
-                        </div>
 
-                        {/* Modal Body */}
-                        <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-                            {viewMode === 'library' ? (
-                                <div className="space-y-6">
-                                    <div className="relative group">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <input
-                                            type="text"
-                                            placeholder="Cerca..."
-                                            className="w-full bg-muted/30 border border-border rounded-2xl py-4 pl-12 pr-4 text-sm font-medium text-foreground focus:bg-muted/50 focus:outline-none transition-all"
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {filteredLibrary.map(item => (
-                                            <ContentCard
-                                                key={item.id}
-                                                item={item}
-                                                isCoachView={false}
-                                                onAssign={() => {
-                                                    setSelectedLibraryItem(item);
-                                                    setViewMode('create');
-                                                }}
+                            {/* Mode Switcher */}
+                            <div className="px-6 py-4">
+                                <div className="grid grid-cols-2 bg-muted/30 p-1 rounded-2xl">
+                                    <button
+                                        onClick={() => setViewMode('create')}
+                                        className={clsx("py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", viewMode === 'create' ? "bg-background text-foreground shadow-lg" : "text-muted-foreground")}
+                                    >
+                                        Crea
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('library')}
+                                        className={clsx("py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", viewMode === 'library' ? "bg-background text-foreground shadow-lg" : "text-muted-foreground")}
+                                    >
+                                        Libreria
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+                                {viewMode === 'library' ? (
+                                    <div className="space-y-6">
+                                        <div className="relative group">
+                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                            <input
+                                                type="text"
+                                                placeholder="Cerca..."
+                                                className="w-full bg-muted/30 border border-border rounded-2xl py-4 pl-12 pr-4 text-sm font-medium text-foreground focus:bg-muted/50 focus:outline-none transition-all"
                                             />
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    {(selectedLibraryItem || editingAssignment) && (
-                                        <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-between">
-                                            <span className="text-xs font-bold text-primary truncate flex-1 mr-2">
-                                                {editingAssignment ? 'Modifica contenuto' : `Selezionato: ${selectedLibraryItem?.title}`}
-                                            </span>
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedLibraryItem(null);
-                                                    setEditingAssignment(null);
-                                                }}
-                                                className="text-[10px] font-black uppercase tracking-wider text-primary/70 hover:text-primary underline"
-                                            >
-                                                Reset
-                                            </button>
                                         </div>
-                                    )}
-                                    <ContentEditorCard
-                                        key={editingAssignment?.id || selectedLibraryItem?.id || 'new'}
-                                        onSave={handleAssignContent}
-                                        onCancel={() => setIsAssignmentModalOpen(false)}
-                                        initialData={{
-                                            type: (editingAssignment?.type || (activeTab === 'video' ? 'video' : 'habit')) as any,
-                                            title: editingAssignment?.title || selectedLibraryItem?.title || '',
-                                            description: editingAssignment?.description || selectedLibraryItem?.description || '',
-                                            link: editingAssignment?.link || selectedLibraryItem?.link || ''
-                                        }}
-                                        saveLabel={editingAssignment ? 'Salva' : 'Assegna'}
-                                        showTitle={true}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Plan Modal */}
-            {isPlanModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
-                    <div className="w-full h-auto bg-background sm:rounded-3xl rounded-t-3xl sm:border border-border flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
-                        <div className="flex items-center justify-between p-6 border-b border-border">
-                            <div>
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">
-                                    Struttura
-                                </h3>
-                                <h2 className="text-xl font-black italic tracking-tighter uppercase text-foreground">
-                                    {editingPlan ? 'Modifica' : 'Nuovo'} Piano
-                                </h2>
-                            </div>
-                            <button
-                                onClick={() => setIsPlanModalOpen(false)}
-                                className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        <div className="p-6 md:p-8 overflow-y-auto max-h-[80vh]">
-                            <form onSubmit={handleSavePlan} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Nome</label>
-                                    <input name="name" defaultValue={editingPlan?.name} required className="w-full rounded-2xl bg-muted/30 border border-border py-4 px-5 text-foreground focus:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-base" placeholder="Es: Masterclass" />
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Inizio</label>
-                                        <input type="date" name="start_date" defaultValue={editingPlan?.start_date || format(new Date(), 'yyyy-MM-dd')} className="w-full rounded-2xl bg-muted/30 border border-border py-4 px-5 text-foreground focus:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Scadenza</label>
-                                        <div className="flex bg-muted/30 rounded-2xl p-1 border border-border mb-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => setPlanEndMode('date')}
-                                                className={clsx("flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", planEndMode === 'date' ? "bg-background text-foreground shadow-lg" : "text-muted-foreground")}
-                                            >
-                                                Data
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setPlanEndMode('duration')}
-                                                className={clsx("flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", planEndMode === 'duration' ? "bg-background text-foreground shadow-lg" : "text-muted-foreground")}
-                                            >
-                                                Durata
-                                            </button>
-                                        </div>
-                                        {planEndMode === 'date' ? (
-                                            <input type="date" name="end_date" defaultValue={editingPlan?.end_date} className="w-full rounded-2xl bg-muted/30 border border-border py-4 px-5 text-foreground focus:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
-                                        ) : (
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    value={durationAmount}
-                                                    onChange={(e) => setDurationAmount(parseInt(e.target.value) || 1)}
-                                                    className="w-24 bg-muted/30 border border-border rounded-2xl p-4 text-foreground text-center font-bold text-lg focus:outline-none"
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {filteredLibrary.map(item => (
+                                                <ContentCard
+                                                    key={item.id}
+                                                    item={item}
+                                                    isCoachView={false}
+                                                    onAssign={() => {
+                                                        setSelectedLibraryItem(item);
+                                                        setViewMode('create');
+                                                    }}
                                                 />
-                                                <select
-                                                    value={durationUnit}
-                                                    onChange={(e) => setDurationUnit(e.target.value as any)}
-                                                    className="flex-1 bg-muted/30 border border-border rounded-2xl p-4 text-xs font-black uppercase tracking-widest text-foreground focus:outline-none"
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {(selectedLibraryItem || editingAssignment) && (
+                                            <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-between">
+                                                <span className="text-xs font-bold text-primary truncate flex-1 mr-2">
+                                                    {editingAssignment ? 'Modifica contenuto' : `Selezionato: ${selectedLibraryItem?.title}`}
+                                                </span>
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedLibraryItem(null);
+                                                        setEditingAssignment(null);
+                                                    }}
+                                                    className="text-[10px] font-black uppercase tracking-wider text-primary/70 hover:text-primary underline"
                                                 >
-                                                    <option value="days" className="bg-background text-foreground">Giorni</option>
-                                                    <option value="weeks" className="bg-background text-foreground">Settimane</option>
-                                                    <option value="months" className="bg-background text-foreground">Mesi</option>
-                                                </select>
+                                                    Reset
+                                                </button>
                                             </div>
                                         )}
+                                        <ContentEditorCard
+                                            key={editingAssignment?.id || selectedLibraryItem?.id || 'new'}
+                                            onSave={handleAssignContent}
+                                            onCancel={() => setIsAssignmentModalOpen(false)}
+                                            initialData={{
+                                                type: (editingAssignment?.type || (activeTab === 'video' ? 'video' : 'habit')) as any,
+                                                title: editingAssignment?.title || selectedLibraryItem?.title || '',
+                                                description: editingAssignment?.description || selectedLibraryItem?.description || '',
+                                                link: editingAssignment?.link || selectedLibraryItem?.link || ''
+                                            }}
+                                            saveLabel={editingAssignment ? 'Salva' : 'Assegna'}
+                                            showTitle={true}
+                                        />
                                     </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Descrizione</label>
-                                    <textarea name="description" defaultValue={editingPlan?.description} className="w-full rounded-2xl bg-muted/30 border border-border py-4 px-5 text-foreground h-32 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium leading-relaxed resize-none" placeholder="Dettagli aggiuntivi..." />
-                                </div>
-
-                                <button type="submit" className="w-full rounded-2xl bg-primary py-4 text-[10px] font-black uppercase tracking-widest text-primary-foreground shadow-xl shadow-primary/20">
-                                    {editingPlan ? 'Aggiorna Piano' : 'Crea Piano'}
-                                </button>
-                            </form>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
+
+            {/* Plan Modal */}
+            {
+                isPlanModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
+                        <div className="w-full h-auto bg-background sm:rounded-3xl rounded-t-3xl sm:border border-border flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
+                            <div className="flex items-center justify-between p-6 border-b border-border">
+                                <div>
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">
+                                        Struttura
+                                    </h3>
+                                    <h2 className="text-xl font-black italic tracking-tighter uppercase text-foreground">
+                                        {editingPlan ? 'Modifica' : 'Nuovo'} Piano
+                                    </h2>
+                                </div>
+                                <button
+                                    onClick={() => setIsPlanModalOpen(false)}
+                                    className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-6 md:p-8 overflow-y-auto max-h-[80vh]">
+                                <form onSubmit={handleSavePlan} className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Nome</label>
+                                        <input name="name" defaultValue={editingPlan?.name} required className="w-full rounded-2xl bg-muted/30 border border-border py-4 px-5 text-foreground focus:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-base" placeholder="Es: Masterclass" />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Inizio</label>
+                                            <input type="date" name="start_date" defaultValue={editingPlan?.start_date || format(new Date(), 'yyyy-MM-dd')} className="w-full rounded-2xl bg-muted/30 border border-border py-4 px-5 text-foreground focus:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Scadenza</label>
+                                            <div className="flex bg-muted/30 rounded-2xl p-1 border border-border mb-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPlanEndMode('date')}
+                                                    className={clsx("flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", planEndMode === 'date' ? "bg-background text-foreground shadow-lg" : "text-muted-foreground")}
+                                                >
+                                                    Data
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPlanEndMode('duration')}
+                                                    className={clsx("flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", planEndMode === 'duration' ? "bg-background text-foreground shadow-lg" : "text-muted-foreground")}
+                                                >
+                                                    Durata
+                                                </button>
+                                            </div>
+                                            {planEndMode === 'date' ? (
+                                                <input type="date" name="end_date" defaultValue={editingPlan?.end_date} className="w-full rounded-2xl bg-muted/30 border border-border py-4 px-5 text-foreground focus:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
+                                            ) : (
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={durationAmount}
+                                                        onChange={(e) => setDurationAmount(parseInt(e.target.value) || 1)}
+                                                        className="w-24 bg-muted/30 border border-border rounded-2xl p-4 text-foreground text-center font-bold text-lg focus:outline-none"
+                                                    />
+                                                    <select
+                                                        value={durationUnit}
+                                                        onChange={(e) => setDurationUnit(e.target.value as any)}
+                                                        className="flex-1 bg-muted/30 border border-border rounded-2xl p-4 text-xs font-black uppercase tracking-widest text-foreground focus:outline-none"
+                                                    >
+                                                        <option value="days" className="bg-background text-foreground">Giorni</option>
+                                                        <option value="weeks" className="bg-background text-foreground">Settimane</option>
+                                                        <option value="months" className="bg-background text-foreground">Mesi</option>
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Descrizione</label>
+                                        <textarea name="description" defaultValue={editingPlan?.description} className="w-full rounded-2xl bg-muted/30 border border-border py-4 px-5 text-foreground h-32 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium leading-relaxed resize-none" placeholder="Dettagli aggiuntivi..." />
+                                    </div>
+
+                                    <button type="submit" className="w-full rounded-2xl bg-primary py-4 text-[10px] font-black uppercase tracking-widest text-primary-foreground shadow-xl shadow-primary/20">
+                                        {editingPlan ? 'Aggiorna Piano' : 'Crea Piano'}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
 
             {/* Post Modal */}
-            {isPostModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
-                    <div className="w-full h-[90vh] sm:h-auto sm:max-h-[85vh] sm:max-w-2xl bg-background sm:rounded-3xl rounded-t-3xl sm:border border-border flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
-                        <div className="flex items-center justify-between p-6 border-b border-border">
-                            <div>
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">
-                                    Bacheca
-                                </h3>
-                                <h2 className="text-xl font-black italic tracking-tighter uppercase text-foreground">
-                                    Scrivi <span className="text-primary">Post</span>
-                                </h2>
+            {
+                isPostModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
+                        <div className="w-full h-[90vh] sm:h-auto sm:max-h-[85vh] sm:max-w-2xl bg-background sm:rounded-3xl rounded-t-3xl sm:border border-border flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
+                            <div className="flex items-center justify-between p-6 border-b border-border">
+                                <div>
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">
+                                        Bacheca
+                                    </h3>
+                                    <h2 className="text-xl font-black italic tracking-tighter uppercase text-foreground">
+                                        Scrivi <span className="text-primary">Post</span>
+                                    </h2>
+                                </div>
+                                <button
+                                    onClick={() => setIsPostModalOpen(false)}
+                                    className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setIsPostModalOpen(false)}
-                                className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-                        <div className="p-6 md:p-8 overflow-y-auto">
-                            <ContentEditorCard
-                                onSave={handleCreatePost}
-                                onCancel={() => setIsPostModalOpen(false)}
-                                saveLabel="Pubblica"
-                                showTitle={true}
-                                initialData={{ type: 'post' }}
-                            />
+                            <div className="p-6 md:p-8 overflow-y-auto">
+                                <ContentEditorCard
+                                    onSave={handleCreatePost}
+                                    onCancel={() => setIsPostModalOpen(false)}
+                                    saveLabel="Pubblica"
+                                    showTitle={true}
+                                    initialData={{ type: 'post' }}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-        </div>
+        </div >
     );
 }
 

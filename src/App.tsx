@@ -1,12 +1,20 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SubscriptionGuard } from '@/components/shared/SubscriptionGuard';
 import { CoachGuard } from '@/components/shared/CoachGuard';
+import { AdminGuard } from '@/components/shared/AdminGuard';
+import AdminLayout from '@/components/layout/AdminLayout';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminCoaches from '@/pages/admin/AdminCoaches';
+import AdminClients from '@/pages/admin/AdminClients';
+import AdminContent from '@/pages/admin/AdminContent';
+import AdminSystem from '@/pages/admin/AdminSystem';
 import CoachLayout from '@/components/layout/CoachLayout';
 import CoachDashboard from '@/pages/coach/CoachDashboard';
 import CoachClients from '@/pages/coach/CoachClients';
 import CoachClientDetail from '@/pages/coach/CoachClientDetail';
 import CoachLibrary from '@/pages/coach/CoachLibrary';
 import CoachBoard from '@/pages/coach/CoachBoard';
+import SystemMonitor from '@/pages/coach/SystemMonitor';
 import Settings from '@/pages/Settings';
 import Login from '@/pages/Login';
 import ResetPassword from '@/pages/ResetPassword';
@@ -18,6 +26,7 @@ import ClientVideos from '@/pages/client/ClientVideos';
 import { CoachSelectionProvider } from '@/context/CoachSelectionContext';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { InstallPWA } from '@/components/shared/InstallPWA';
+
 
 function App() {
   return (
@@ -58,14 +67,32 @@ function App() {
             <Route path="clients/:clientId" element={<CoachClientDetail />} />
             <Route path="library" element={<CoachLibrary />} />
             <Route path="board" element={<CoachBoard />} />
+            <Route path="system" element={<SystemMonitor />} />
             <Route path="settings" element={<Settings />} />
+          </Route>
+
+          {/* Admin Routes */}
+          <Route
+            path="/admin"
+            element={
+              <AdminGuard>
+                <AdminLayout />
+              </AdminGuard>
+            }
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="coaches" element={<AdminCoaches />} />
+            <Route path="clients" element={<AdminClients />} />
+            <Route path="content" element={<AdminContent />} />
+            <Route path="system" element={<AdminSystem />} />
           </Route>
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
-    </ErrorBoundary>
+    </ErrorBoundary >
   );
 }
 

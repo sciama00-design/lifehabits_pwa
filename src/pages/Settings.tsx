@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/components/shared/ThemeProvider";
-import { User, Lock, Mail, Moon, Sun, Monitor, LogOut, CheckCircle2, AlertCircle } from "lucide-react";
+import { User, Lock, Mail, Moon, Sun, Monitor, LogOut, CheckCircle2, AlertCircle, Activity } from "lucide-react";
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import SystemMonitor from "./coach/SystemMonitor";
+import NotificationSettings from "@/components/shared/NotificationSettings";
 
 export default function Settings() {
     const { profile } = useAuth();
@@ -197,6 +199,9 @@ export default function Settings() {
                             ))}
                         </div>
                     </motion.section>
+
+                    {/* Notification Settings */}
+                    <NotificationSettings />
                 </div>
 
                 <div className="space-y-6">
@@ -277,6 +282,25 @@ export default function Settings() {
                             </form>
                         </div>
                     </motion.section>
+
+                    {/* Coach Admin Section */}
+                    {profile?.role === 'coach' && (
+                        <motion.section
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.25 }}
+                            className="space-y-6 glass-card p-8 rounded-[2rem]"
+                        >
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 rounded-xl bg-primary/10 border border-primary/10 text-primary">
+                                    <Activity className="h-4 w-4" />
+                                </div>
+                                <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground">System Monitor</h2>
+                            </div>
+
+                            <SystemMonitor />
+                        </motion.section>
+                    )}
 
                     {/* Logout Section */}
                     <motion.section

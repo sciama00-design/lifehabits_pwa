@@ -10,7 +10,14 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true,
+        type: 'module',
+      },
       includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'LifeHabits',

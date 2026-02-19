@@ -21,6 +21,8 @@ export default function Login() {
                 navigate('/coach/dashboard');
             } else if (profile?.role === 'client') {
                 navigate('/');
+            } else if (profile?.role === 'admin') {
+                navigate('/admin/dashboard');
             }
         }
     }, [user, profile, authLoading, navigate]);
