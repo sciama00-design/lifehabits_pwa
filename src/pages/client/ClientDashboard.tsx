@@ -2,10 +2,11 @@ import { useClientDashboard } from '@/hooks/useClientDashboard';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Bell, Sparkles, Leaf, Play } from 'lucide-react';
+import { Bell, Sparkles, Leaf, Play, Wind } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ContentCard } from '@/components/shared/ContentCard';
 import { MediaViewer } from '@/components/shared/MediaViewer';
+import { TextPostModal } from '@/components/shared/TextPostModal';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import type { BoardPost } from '@/types/database';
@@ -187,19 +188,67 @@ export default function ClientDashboard() {
                                 </div>
                             </motion.div>
                         </Link>
+
+                        {/* Breathing Exercise CTA */}
+                        <Link to="/breathing" className="block">
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="relative overflow-hidden group cursor-pointer p-5 h-full rounded-[var(--radius-xl)]"
+                                style={{
+                                    background: 'linear-gradient(135deg, #059669, #0d9488)',
+                                    border: '1px solid rgba(52,211,153,0.3)',
+                                }}
+                            >
+                                <div className="absolute top-0 right-0 p-3 opacity-15 group-hover:opacity-25 transition-opacity">
+                                    <Wind className="h-12 w-12 text-white" />
+                                </div>
+                                <div className="absolute inset-0 opacity-[0.04]" style={{
+                                    backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                                    backgroundSize: '20px 20px',
+                                }} />
+                                <div className="relative flex flex-col h-full justify-between gap-4">
+                                    <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center border border-white/15">
+                                        <Wind className="h-4 w-4 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-1">
+                                            Respira
+                                        </p>
+                                        <h3 className="text-sm font-bold text-white leading-snug">
+                                            Respiriamo Insieme 🧘
+                                        </h3>
+                                        <p className="text-[10px] text-white/50 mt-1">
+                                            2 min · Box Breathing
+                                        </p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </Link>
                     </section>
                 </div>
             </div>
 
             {/* Board Post Modal */}
-            <MediaViewer
-                isOpen={!!selectedPost}
-                onClose={() => setSelectedPost(null)}
-                type="post"
-                url={selectedPost?.image_url || null}
-                title={selectedPost?.title || ''}
-                description={selectedPost?.content}
-            />
+            {selectedPost?.image_url ? (
+                <MediaViewer
+                    isOpen={!!selectedPost}
+                    onClose={() => setSelectedPost(null)}
+                    type="post"
+                    url={selectedPost.image_url}
+                    title={selectedPost.title}
+                    description={selectedPost.content}
+                />
+            ) : (
+                <TextPostModal
+                    isOpen={!!selectedPost}
+                    onClose={() => setSelectedPost(null)}
+                    title={selectedPost?.title || ''}
+                    content={selectedPost?.content || ''}
+                    author={selectedPost?.coach?.full_name || 'Coach'}
+                    date={selectedPost ? format(new Date(selectedPost.created_at), 'd MMMM yyyy', { locale: it }) : undefined}
+                />
+            )}
         </div>
     );
 }

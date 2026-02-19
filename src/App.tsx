@@ -23,6 +23,7 @@ import ClientLayout from '@/components/layout/ClientLayout';
 import ClientDashboard from '@/pages/client/ClientDashboard';
 import ClientHabits from '@/pages/client/ClientHabits';
 import ClientVideos from '@/pages/client/ClientVideos';
+import BreathingExercise from '@/pages/client/BreathingExercise';
 import { CoachSelectionProvider } from '@/context/CoachSelectionContext';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { InstallPWA } from '@/components/shared/InstallPWA';
@@ -49,6 +50,7 @@ function App() {
             <Route path="/" element={<ClientDashboard />} />
             <Route path="/habits" element={<ClientHabits />} />
             <Route path="/videos" element={<ClientVideos />} />
+            <Route path="/breathing" element={<BreathingExercise />} />
             <Route path="profile" element={<Settings />} />
           </Route>
 

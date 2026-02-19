@@ -56,7 +56,8 @@ export function useClientDashboard() {
             const { data: metaData, error: metaError } = await supabase
                 .from('assignments')
                 .select('id, plan_id, type, completed, title')
-                .eq('client_id', profile!.id);
+                .eq('client_id', profile!.id)
+                .gte('scheduled_date', today);
 
             if (metaError) throw metaError;
             setAllAssignmentsMeta(metaData || []);
