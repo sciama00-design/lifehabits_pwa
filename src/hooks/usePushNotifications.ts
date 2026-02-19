@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { urlBase64ToUint8Array } from '@/lib/pushUtils'
 import { useAuth } from './useAuth'
@@ -28,7 +28,7 @@ export function usePushNotifications() {
         }
     }
 
-    const subscribe = async () => {
+    const subscribe = useCallback(async () => {
         console.log("Starting subscribe process...");
         if (!VAPID_PUBLIC_KEY) {
             console.error("VAPID Public Key not found in env");
@@ -93,9 +93,9 @@ export function usePushNotifications() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
 
-    const unsubscribe = async () => {
+    const unsubscribe = useCallback(async () => {
         setLoading(true)
         try {
             if (subscription) {
@@ -122,9 +122,9 @@ export function usePushNotifications() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [subscription, user?.id])
 
-    const sendTestNotification = async () => {
+    const sendTestNotification = useCallback(async () => {
         if (!subscription || !user) return;
         setLoading(true);
         try {
@@ -145,7 +145,7 @@ export function usePushNotifications() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [subscription, user]);
 
     return { permission, subscription, subscribe, unsubscribe, sendTestNotification, loading, error };
 }

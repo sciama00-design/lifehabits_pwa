@@ -8,7 +8,7 @@ import clsx from 'clsx';
 import { motion } from 'framer-motion';
 
 export default function NotificationSettings() {
-    const { subscription, subscribe, unsubscribe, sendTestNotification, loading: pushLoading, error: pushError } = usePushNotifications();
+    const { subscription, subscribe, unsubscribe, loading: pushLoading, error: pushError } = usePushNotifications();
     const { profile } = useAuth();
     const [isEnabled, setIsEnabled] = useState(true);
     const [loadingSettings, setLoadingSettings] = useState(true);
@@ -136,13 +136,6 @@ export default function NotificationSettings() {
                         </div>
                         {subscription ? (
                             <div className="flex items-center gap-3">
-                                <button
-                                    onClick={sendTestNotification}
-                                    disabled={pushLoading}
-                                    className="text-[10px] bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg transition-colors font-bold"
-                                >
-                                    Prova Notifica 🔔
-                                </button>
                                 <button
                                     onClick={unsubscribe}
                                     className="text-[10px] text-destructive hover:underline"

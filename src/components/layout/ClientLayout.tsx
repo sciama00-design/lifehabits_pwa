@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Home, Settings, Play, Leaf } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import clsx from 'clsx';
@@ -41,6 +42,22 @@ export default function ClientLayout() {
         mainContent?.addEventListener('scroll', handleScroll);
         return () => mainContent?.removeEventListener('scroll', handleScroll);
     }, [lastScrollY]);
+
+    // First access permission check
+    const { subscribe, permission } = usePushNotifications(); // Add hook usage
+
+    useEffect(() => {
+        const hasVisited = localStorage.getItem('has_visited_app');
+
+        if (!hasVisited && permission === 'default') {
+            // First time visit, ask for permission
+            subscribe();
+            localStorage.setItem('has_visited_app', 'true');
+        } else if (!hasVisited) {
+            // Mark as visited even if permission is not default (e.g. already granted/denied)
+            localStorage.setItem('has_visited_app', 'true');
+        }
+    }, [permission, subscribe]);
 
     return (
         <div className="flex flex-col md:flex-row h-screen bg-background text-foreground overflow-hidden premium-gradient-bg relative">
