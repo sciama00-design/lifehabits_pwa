@@ -56,19 +56,23 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close()
-    const urlToOpen = event.notification.data?.url || '/'
+
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            // Force opening the dashboard regardless of the notification payload
+            const targetUrl = '/';
+
             // Check if there is already a window/tab open with the target URL
             for (const client of windowClients) {
-                if (client.url === urlToOpen && 'focus' in client) {
+                // Check if the client is focusing on the root URL
+                if (client.url === new URL(targetUrl, self.location.origin).href && 'focus' in client) {
                     return client.focus()
                 }
             }
             // If not, open a new window
             if (self.clients.openWindow) {
-                return self.clients.openWindow(urlToOpen)
+                return self.clients.openWindow(targetUrl)
             }
         })
     )

@@ -73,17 +73,36 @@ export function usePushNotifications() {
             const { data: { user } } = await supabase.auth.getUser()
 
             if (user) {
-                const { error: insertError } = await supabase.from('push_subscriptions').insert({
-                    user_id: user.id,
-                    subscription: sub,
-                    user_agent: navigator.userAgent
-                })
+                // Check if already subscribed with this endpoint
+                // We use upsert logic or verify existence first
+                // Let's try upsert assuming unique constraint on (user_id, subscription->>'endpoint') is active?
+                // Or safer: check existence.
+                const { data: existing } = await supabase
+                    .from('push_subscriptions')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .eq('subscription->>endpoint', sub.endpoint)
+                    .single(); // using single() might error if 0 rows, let's use maybeSingle() or just limit(1)
 
-                if (insertError) {
-                    console.error("Error saving subscription to DB:", insertError)
-                    // We don't throw here to avoid rollback of local subscription, but we should warn
+                if (existing) {
+                    console.log("Subscription already exists in DB, skipping insert.");
                 } else {
-                    console.log("Saved to Supabase successfully.");
+                    const { error: insertError } = await supabase.from('push_subscriptions').insert({
+                        user_id: user.id,
+                        subscription: sub,
+                        user_agent: navigator.userAgent
+                    })
+
+                    if (insertError) {
+                        // If constraint fails, we can ignore duplicate key error
+                        if (insertError.code === '23505') { // Unique violation
+                            console.log("Subscription already exists (caught unique constraint)");
+                        } else {
+                            console.error("Error saving subscription to DB:", insertError)
+                        }
+                    } else {
+                        console.log("Saved to Supabase successfully.");
+                    }
                 }
             }
 

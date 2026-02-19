@@ -402,14 +402,14 @@ export default function CoachBoard() {
                                         <div className="flex items-center gap-3">
                                             <button
                                                 onClick={() => handleEdit(post)}
-                                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-blue-500/20 shadow-lg"
+                                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20 shadow-lg"
                                                 title="Modifica"
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(post)}
-                                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-red-500/20 shadow-lg"
+                                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 shadow-lg"
                                                 title="Elimina"
                                             >
                                                 <Trash2 className="h-4 w-4" />

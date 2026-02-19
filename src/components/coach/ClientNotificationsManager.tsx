@@ -315,17 +315,17 @@ export function ClientNotificationsManager({ clientId }: ClientNotificationsMana
                                         </div>
                                         <p className="text-sm font-medium text-foreground">{rule.message}</p>
                                     </div>
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => handleEditRule(rule)}
-                                            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                                            className="p-1.5 rounded-lg bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 transition-colors border border-yellow-500/20"
                                             title="Modifica"
                                         >
                                             <Edit2 className="h-3.5 w-3.5" />
                                         </button>
                                         <button
                                             onClick={() => handleDeleteRule(rule.id)}
-                                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                            className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors border border-red-500/20"
                                             title="Elimina"
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
