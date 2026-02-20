@@ -1,7 +1,7 @@
 import { useClientAssignments } from '@/hooks/useClientAssignments';
 import { ContentCard } from '@/components/shared/ContentCard';
-import { motion } from 'framer-motion';
-import { Play, Sparkles } from 'lucide-react';
+// import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { CoachSelector } from '@/components/shared/CoachSelector';
 
 export default function ClientVideos() {
@@ -30,33 +30,23 @@ export default function ClientVideos() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-10 pb-20">
-            {/* Header */}
-            <section className="pt-6 flex flex-col gap-6">
-                <div className="flex items-center justify-between">
-                    <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                    >
-                        <div className="flex items-center gap-2 mb-1">
-                            <Play className="h-3.5 w-3.5 text-primary" />
-                            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Media Library</span>
-                        </div>
-                        <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight">
-                            I Tuoi <span className="text-primary italic">Video</span>
-                        </h1>
-                        <p className="text-[10px] md:text-sm text-muted-foreground font-medium opacity-60">
-                            Contenuti esclusivi per il tuo percorso
-                        </p>
-                    </motion.div>
-
-                    {plans.length > 0 && (
-                        <CoachSelector
-                            plans={plans}
-                            selectedPlanId={selectedPlanId}
-                            onSelect={setSelectedPlanId}
-                        />
-                    )}
+            {/* Header - Modern */}
+            <section className="pt-2 flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                        I Tuoi Video <span className="text-2xl md:text-3xl">🎥</span>
+                    </h1>
+                    <p className="text-sm text-muted-foreground font-medium mt-1 ml-1 opacity-80">
+                        Impara e cresci
+                    </p>
                 </div>
+                {plans.length > 0 && (
+                    <CoachSelector
+                        plans={plans}
+                        selectedPlanId={selectedPlanId}
+                        onSelect={setSelectedPlanId}
+                    />
+                )}
             </section>
 
             {/* Videos List */}

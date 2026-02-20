@@ -1,7 +1,7 @@
 import { useClientAssignments } from '@/hooks/useClientAssignments';
 import { ContentCard } from '@/components/shared/ContentCard';
-import { motion } from 'framer-motion';
-import { CheckSquare, Sparkles, Leaf } from 'lucide-react';
+// import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { CoachSelector } from '@/components/shared/CoachSelector';
 
 export default function ClientHabits() {
@@ -30,33 +30,23 @@ export default function ClientHabits() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-10 pb-20">
-            {/* Header */}
-            <section className="pt-6 flex flex-col gap-6">
-                <div className="flex items-center justify-between">
-                    <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                    >
-                        <div className="flex items-center gap-2 mb-1">
-                            <CheckSquare className="h-3.5 w-3.5 text-primary" />
-                            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Crescita Reale</span>
-                        </div>
-                        <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight">
-                            Le Tue <span className="text-primary italic inline-flex items-center gap-2">Abitudini <Leaf className="h-8 w-8" /></span>
-                        </h1>
-                        <p className="text-[10px] md:text-sm text-muted-foreground font-medium opacity-60">
-                            Mantieni la costanza per vedere i risultati
-                        </p>
-                    </motion.div>
-
-                    {plans.length > 0 && (
-                        <CoachSelector
-                            plans={plans}
-                            selectedPlanId={selectedPlanId}
-                            onSelect={setSelectedPlanId}
-                        />
-                    )}
+            {/* Header - Modern */}
+            <section className="pt-2 flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                        Le Tue Abitudini <span className="text-2xl md:text-3xl">🌿</span>
+                    </h1>
+                    <p className="text-sm text-muted-foreground font-medium mt-1 ml-1 opacity-80">
+                        La tua routine quotidiana
+                    </p>
                 </div>
+                {plans.length > 0 && (
+                    <CoachSelector
+                        plans={plans}
+                        selectedPlanId={selectedPlanId}
+                        onSelect={setSelectedPlanId}
+                    />
+                )}
             </section>
 
             {/* Habits List */}

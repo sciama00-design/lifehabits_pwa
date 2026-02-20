@@ -90,26 +90,18 @@ export default function ClientDashboard() {
     return (
         <div className="max-w-5xl mx-auto space-y-6 pb-20">
 
-            {/* Top Bar */}
-            <section className="pt-6 flex flex-col gap-6">
-                <div className="flex items-center justify-between">
-                    <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                    >
-                        <div className="flex items-center gap-2 mb-1">
-                            <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-                            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Live Well</span>
-                        </div>
-                        <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight">
-                            Ciao{firstName ? ` ${firstName}` : ''}!
-                        </h1>
-                        <p className="text-[10px] md:text-sm text-muted-foreground font-medium opacity-60">
-                            Oggi è {format(today, 'EEEE d MMMM', { locale: it })}
-                        </p>
-                    </motion.div>
+            {/* Top Bar - Modern */}
+            <section className="pt-2 flex items-end justify-between">
+                <div>
+                    <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight">
+                        Ciao {firstName} <span className="inline-block animate-wave origin-[70%_70%]">👋</span>
+                    </h1>
+                    <p className="text-sm text-muted-foreground font-medium mt-1 ml-1 flex items-center gap-2">
+                        Oggi è {format(today, 'd MMMM', { locale: it })} <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                    </p>
                 </div>
             </section>
+
 
             {/* ─── Board Announcements (top) ────────────────────── */}
             {boardPosts.length > 0 && (
