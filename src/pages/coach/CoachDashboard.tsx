@@ -5,9 +5,25 @@ import { Users, Clock, AlertTriangle } from 'lucide-react';
 import { addDays, isAfter, isBefore } from 'date-fns';
 import { GlobalNotificationsManager } from '@/components/coach/GlobalNotificationsManager';
 
+// Nomi maschili italiani comuni che finiscono in -a (eccezioni alla regola)
+const MALE_NAMES_ENDING_A = new Set([
+    'luca', 'andrea', 'nicola', 'mattia', 'elia', 'enea', 'battista',
+    'cosma', 'evangelista', 'gianluca', 'luca', 'joshua', 'noah',
+]);
+
+function getGreeting(fullName?: string | null): string {
+    if (!fullName) return 'Bentornato';
+    const firstName = fullName.split(' ')[0].toLowerCase().trim();
+    if (MALE_NAMES_ENDING_A.has(firstName)) return 'Bentornato';
+    if (firstName.endsWith('a')) return 'Bentornata';
+    return 'Bentornato';
+}
+
 export default function CoachDashboard() {
     const { profile } = useAuth();
     const { clients, loading: clientsLoading } = useClients();
+
+    const greeting = getGreeting(profile?.full_name);
 
     // Calculate Statistics
     const activeClientsCount = clients.filter(c =>
@@ -27,7 +43,7 @@ export default function CoachDashboard() {
             <div className="relative">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none text-foreground">
-                        Bentornato, <span className="text-primary">{profile?.full_name?.split(' ')[0]}</span>
+                        {greeting}, <span className="text-primary">{profile?.full_name?.split(' ')[0]}</span>
                     </h1>
                     <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em] opacity-80">Coach Dashboard</p>
                 </div>

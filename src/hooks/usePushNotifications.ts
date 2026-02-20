@@ -104,6 +104,20 @@ export function usePushNotifications() {
                         console.log("Saved to Supabase successfully.");
                     }
                 }
+
+                // Also ensure alert_settings is set to enabled (device connected)
+                const { error: alertError } = await supabase
+                    .from('alert_settings')
+                    .upsert({
+                        user_id: user.id,
+                        is_enabled: true,
+                    }, { onConflict: 'user_id' });
+
+                if (alertError) {
+                    console.error("Error upserting alert_settings:", alertError);
+                } else {
+                    console.log("Alert settings set to enabled (device connected).");
+                }
             }
 
         } catch (err: any) {

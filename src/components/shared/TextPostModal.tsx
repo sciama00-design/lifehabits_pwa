@@ -10,9 +10,10 @@ interface TextPostModalProps {
     content: string;
     author?: string;
     date?: string;
+    imageUrl?: string | null;
 }
 
-export function TextPostModal({ isOpen, onClose, title, content, author, date }: TextPostModalProps) {
+export function TextPostModal({ isOpen, onClose, title, content, author, date, imageUrl }: TextPostModalProps) {
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
@@ -71,6 +72,17 @@ export function TextPostModal({ isOpen, onClose, title, content, author, date }:
                             <X className="h-5 w-5" />
                         </button>
                     </div>
+
+                    {/* Image */}
+                    {imageUrl && (
+                        <div className="flex-none px-6 sm:px-8 pb-4">
+                            <img
+                                src={imageUrl}
+                                alt={title}
+                                className="w-full rounded-2xl object-cover max-h-[40vh] border border-white/5"
+                            />
+                        </div>
+                    )}
 
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-8 custom-scrollbar">

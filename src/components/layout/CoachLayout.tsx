@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import clsx from 'clsx';
 
 import { MobileBottomNav } from './MobileBottomNav';
@@ -52,6 +53,20 @@ export default function CoachLayout() {
         mainContent?.addEventListener('scroll', handleScroll);
         return () => mainContent?.removeEventListener('scroll', handleScroll);
     }, [lastScrollY]);
+
+    // First access permission check
+    const { subscribe, permission } = usePushNotifications();
+
+    useEffect(() => {
+        const hasVisited = localStorage.getItem('has_visited_app');
+
+        if (!hasVisited && permission === 'default') {
+            subscribe();
+            localStorage.setItem('has_visited_app', 'true');
+        } else if (!hasVisited) {
+            localStorage.setItem('has_visited_app', 'true');
+        }
+    }, [permission, subscribe]);
 
     return (
         <div className="flex h-screen bg-background text-foreground overflow-hidden premium-gradient-bg">

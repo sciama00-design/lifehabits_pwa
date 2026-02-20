@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 import { useCoachSelection } from '@/context/CoachSelectionContext';
+import { useDailyCompletions } from './useDailyCompletions';
 import type { Assignment } from '@/types/database';
 
 export function useClientAssignments(type?: 'habit' | 'video' | 'pdf') {
@@ -10,6 +11,7 @@ export function useClientAssignments(type?: 'habit' | 'video' | 'pdf') {
     const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { isCompletedToday, toggleCompletion, fetchCompletions, getTodayStr } = useDailyCompletions();
 
     useEffect(() => {
         if (profile?.role === 'client') {
@@ -22,7 +24,6 @@ export function useClientAssignments(type?: 'habit' | 'video' | 'pdf') {
     async function fetchInitialData() {
         setLoading(true);
         try {
-            // 1. Fetch Assignments (Plans handled by context)
             let query = supabase
                 .from('assignments')
                 .select('*')
@@ -36,6 +37,10 @@ export function useClientAssignments(type?: 'habit' | 'video' | 'pdf') {
 
             if (error) throw error;
             setAssignments(data || []);
+
+            // Also fetch today's completions so isCompletedToday works
+            const today = getTodayStr();
+            await fetchCompletions(today, today);
         } catch (err: any) {
             console.error('Error fetching client assignments:', err);
             setError(err.message);
@@ -44,24 +49,10 @@ export function useClientAssignments(type?: 'habit' | 'video' | 'pdf') {
         }
     }
 
-    async function toggleComplete(id: string, currentStatus: boolean) {
-        try {
-            const { error } = await supabase
-                .from('assignments')
-                .update({ completed: !currentStatus })
-                .eq('id', id)
-                .eq('client_id', profile!.id);
-
-            if (error) throw error;
-
-            setAssignments(assignments.map(a =>
-                a.id === id ? { ...a, completed: !currentStatus } : a
-            ));
-            return true;
-        } catch (err: any) {
-            console.error('Error toggling assignment:', err);
-            return false;
-        }
+    async function toggleComplete(id: string, _currentStatus: boolean) {
+        // Use daily_completions instead of updating assignments.completed
+        const result = await toggleCompletion(id);
+        return result;
     }
 
     const filteredAssignments = selectedPlanId === 'all'
@@ -76,6 +67,7 @@ export function useClientAssignments(type?: 'habit' | 'video' | 'pdf') {
         loading,
         error,
         toggleComplete,
+        isCompletedToday,
         refresh: fetchInitialData
     };
 }

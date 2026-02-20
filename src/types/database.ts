@@ -73,3 +73,11 @@ export interface BoardPost {
     coach?: Profile; // Hydrated author
 }
 
+export interface DailyCompletion {
+    id: string;
+    client_id: string;
+    assignment_id: string;
+    completed_date: string;
+    created_at: string;
+}
+

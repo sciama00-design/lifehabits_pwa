@@ -97,6 +97,19 @@ CREATE TABLE public.board_posts (
   CONSTRAINT board_posts_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.profiles(id)
 );
 
+-- 8. Daily Completions (Tracks daily habit/video completions)
+CREATE TABLE public.daily_completions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  client_id uuid NOT NULL,
+  assignment_id uuid NOT NULL,
+  completed_date date NOT NULL DEFAULT CURRENT_DATE,
+  created_at timestamptz DEFAULT now(),
+  CONSTRAINT daily_completions_pkey PRIMARY KEY (id),
+  CONSTRAINT daily_completions_unique UNIQUE (client_id, assignment_id, completed_date),
+  CONSTRAINT daily_completions_client_fkey FOREIGN KEY (client_id) REFERENCES public.profiles(id) ON DELETE CASCADE,
+  CONSTRAINT daily_completions_assignment_fkey FOREIGN KEY (assignment_id) REFERENCES public.assignments(id) ON DELETE CASCADE
+);
+
 -- RLS POLICIES
 
 -- Enable RLS

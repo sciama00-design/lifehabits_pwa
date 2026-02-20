@@ -8,7 +8,7 @@ import clsx from 'clsx';
 import { motion } from 'framer-motion';
 
 export default function NotificationSettings() {
-    const { subscription, subscribe, unsubscribe, loading: pushLoading, error: pushError } = usePushNotifications();
+    const { subscription, subscribe, error: pushError } = usePushNotifications();
     const { profile } = useAuth();
     const [isEnabled, setIsEnabled] = useState(true);
     const [loadingSettings, setLoadingSettings] = useState(true);
@@ -53,7 +53,6 @@ export default function NotificationSettings() {
                     user_id: profile?.id,
                     role: profile?.role,
                     is_enabled: newValue,
-                    // We don't touch alert_times or other fields if they exist
                 }, { onConflict: 'user_id' });
 
             if (error) throw error;
@@ -124,36 +123,6 @@ export default function NotificationSettings() {
                         </button>
                     )}
                 </div>
-
-                {/* Browser Subscription Status (Debug/Info) */}
-                {isEnabled && (
-                    <div className="px-4 py-3 rounded-xl bg-muted/20 border border-border flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Stato dispositivo</p>
-                            <p className="text-xs font-medium">
-                                {subscription ? "Dispositivo collegato" : "Dispositivo non collegato"}
-                            </p>
-                        </div>
-                        {subscription ? (
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={unsubscribe}
-                                    className="text-[10px] text-destructive hover:underline"
-                                >
-                                    Disconnetti
-                                </button>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={subscribe}
-                                disabled={pushLoading}
-                                className="text-[10px] text-primary hover:underline font-bold"
-                            >
-                                {pushLoading ? "..." : "Collega questo dispositivo"}
-                            </button>
-                        )}
-                    </div>
-                )}
             </div>
         </motion.section>
     );

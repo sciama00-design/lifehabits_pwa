@@ -12,6 +12,8 @@ export default function ClientVideos() {
         setSelectedPlanId,
         loading,
         error,
+        toggleComplete,
+        isCompletedToday
     } = useClientAssignments('video');
 
     if (loading) return (
@@ -75,7 +77,8 @@ export default function ClientVideos() {
                                 key={video.id}
                                 item={video as any}
                                 isCoachView={false}
-                                isCompleted={video.completed}
+                                isCompleted={isCompletedToday(video.id)}
+                                onToggleComplete={toggleComplete}
                             />
                         ))}
                     </div>

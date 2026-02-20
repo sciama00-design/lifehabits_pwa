@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 import { useCoachSelection } from '@/context/CoachSelectionContext';
+import { useDailyCompletions } from './useDailyCompletions';
 import type { Assignment, BoardPost, ClientInfo } from '@/types/database';
 
 export function useClientDashboard() {
@@ -13,6 +14,7 @@ export function useClientDashboard() {
     const [allAssignmentsMeta, setAllAssignmentsMeta] = useState<Pick<Assignment, 'id' | 'plan_id' | 'type' | 'completed' | 'title'>[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { isCompletedToday, toggleCompletion, fetchCompletions, getTodayStr } = useDailyCompletions();
 
     useEffect(() => {
         if (profile?.role === 'client') {
@@ -37,7 +39,7 @@ export function useClientDashboard() {
 
             // 2. Get All Active Subscription Plans (Handled by Context)
             const now = new Date();
-            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const today = getTodayStr();
 
             // 3. Get Assignments
             let assignQuery = supabase
@@ -61,6 +63,9 @@ export function useClientDashboard() {
 
             if (metaError) throw metaError;
             setAllAssignmentsMeta(metaData || []);
+
+            // 3c. Fetch today's daily completions
+            await fetchCompletions(today, today);
 
             // 4. Get Board Posts from all coaches the client is subscribed to
             const coachIds = plans?.map(p => p.coach_id) || [];
@@ -91,25 +96,10 @@ export function useClientDashboard() {
         }
     }
 
-    async function toggleAssignment(id: string, currentStatus: boolean) {
-        try {
-            const { error } = await supabase
-                .from('assignments')
-                .update({ completed: !currentStatus })
-                .eq('id', id)
-                .eq('client_id', profile!.id);
-
-            if (error) throw error;
-
-            setAssignments(assignments.map(a =>
-                a.id === id ? { ...a, completed: !currentStatus } : a
-            ));
-            return true;
-        } catch (err: any) {
-            console.error('Error toggling assignment:', err);
-            setError(err.message);
-            return false;
-        }
+    async function toggleAssignment(id: string, _currentStatus: boolean) {
+        // Use daily_completions instead of updating assignments.completed
+        const result = await toggleCompletion(id);
+        return result;
     }
 
     // Filter logic
@@ -118,7 +108,6 @@ export function useClientDashboard() {
         : assignments.filter(a => a.plan_id === selectedPlanId);
 
     // Board Posts are now always global on dashboard
-    // const filteredBoardPosts = ... (removed)
 
     const filteredAllMeta = selectedPlanId === 'all'
         ? allAssignmentsMeta
@@ -139,6 +128,7 @@ export function useClientDashboard() {
         loading,
         error,
         toggleAssignment,
+        isCompletedToday,
         stats,
         refresh: fetchDashboardData
     };
