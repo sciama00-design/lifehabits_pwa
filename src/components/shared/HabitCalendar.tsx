@@ -5,7 +5,6 @@ import {
     ChevronRight,
     Calendar,
     CheckCircle2,
-    XCircle,
     Leaf,
     Play,
     X
