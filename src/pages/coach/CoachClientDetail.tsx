@@ -24,11 +24,13 @@ import {
     Pencil,
     LayoutGrid,
     Calendar,
+    CalendarDays,
     Leaf,
     Check,
     Bell
 } from 'lucide-react';
 import { ClientNotificationsManager } from '@/components/coach/ClientNotificationsManager';
+import { CoachHabitCalendar } from '@/components/coach/CoachHabitCalendar';
 import clsx from 'clsx';
 import type { ContentData } from '@/components/editor/ContentEditorCard';
 import { ContentEditorCard } from '@/components/editor/ContentEditorCard';
@@ -49,7 +51,7 @@ const safeFormat = (date: string | null | undefined, formatStr: string) => {
     }
 };
 
-type Tab = 'anagrafica' | 'bacheca' | 'abitudini' | 'video' | 'notifiche';
+type Tab = 'anagrafica' | 'bacheca' | 'abitudini' | 'video' | 'notifiche' | 'calendario';
 
 export default function CoachClientDetail() {
     const { clientId } = useParams<{ clientId: string }>();
@@ -243,6 +245,7 @@ export default function CoachClientDetail() {
                         <TabButton active={activeTab === 'bacheca'} onClick={() => setActiveTab('bacheca')} icon={<MessageSquare className="h-4 w-4" />} label="Bacheca" />
                         <TabButton active={activeTab === 'abitudini'} onClick={() => setActiveTab('abitudini')} icon={<Leaf className="h-4 w-4" />} label="Abitudini" />
                         <TabButton active={activeTab === 'video'} onClick={() => setActiveTab('video')} icon={<Video className="h-4 w-4" />} label="Video" />
+                        <TabButton active={activeTab === 'calendario'} onClick={() => setActiveTab('calendario')} icon={<CalendarDays className="h-4 w-4" />} label="Calendario" />
                         <TabButton active={activeTab === 'notifiche'} onClick={() => setActiveTab('notifiche')} icon={<Bell className="h-4 w-4" />} label="Notifiche" />
                     </div>
                 </div>
@@ -533,6 +536,20 @@ export default function CoachClientDetail() {
                                     ))
                                 )}
                             </div>
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'calendario' && (
+                        <motion.div
+                            key="calendario"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                        >
+                            <CoachHabitCalendar
+                                assignments={assignments}
+                                clientId={clientId || ''}
+                            />
                         </motion.div>
                     )}
 
