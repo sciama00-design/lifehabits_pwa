@@ -91,7 +91,7 @@ export default function ClientLayout() {
                 {/* Main Content */}
                 <main
                     id="client-main-content"
-                    className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pt-16 md:pt-8"
+                    className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pt-20 md:pt-8"
                 >
                     <div className="mx-auto max-w-5xl md:px-4">
                         <Outlet />

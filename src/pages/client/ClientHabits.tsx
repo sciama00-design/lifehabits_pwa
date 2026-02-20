@@ -30,22 +30,19 @@ export default function ClientHabits() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-10 pb-20">
-            {/* Header - Modern */}
-            <section className="pt-2 flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
-                        Le Tue Abitudini <span className="text-2xl md:text-3xl">🌿</span>
-                    </h1>
-                    <p className="text-sm text-muted-foreground font-medium mt-1 ml-1 opacity-80">
-                        La tua routine quotidiana
-                    </p>
-                </div>
+            {/* Header - Premium Horizontal Style */}
+            <section className="pt-1 flex flex-row items-center justify-between gap-3 border-b border-white/5 pb-4">
+                <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tighter leading-none flex items-center gap-3">
+                    Le Tue Abitudini <span className="shrink-0 text-xl md:text-3xl">🌿</span>
+                </h1>
                 {plans.length > 0 && (
-                    <CoachSelector
-                        plans={plans}
-                        selectedPlanId={selectedPlanId}
-                        onSelect={setSelectedPlanId}
-                    />
+                    <div className="shrink-0">
+                        <CoachSelector
+                            plans={plans}
+                            selectedPlanId={selectedPlanId}
+                            onSelect={setSelectedPlanId}
+                        />
+                    </div>
                 )}
             </section>
 

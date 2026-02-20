@@ -90,16 +90,34 @@ export default function ClientDashboard() {
     return (
         <div className="max-w-5xl mx-auto space-y-6 pb-20">
 
-            {/* Top Bar - Modern */}
-            <section className="pt-2 flex items-end justify-between">
-                <div>
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight">
-                        Ciao {firstName} <span className="inline-block animate-wave origin-[70%_70%]">👋</span>
-                    </h1>
-                    <p className="text-sm text-muted-foreground font-medium mt-1 ml-1 flex items-center gap-2">
-                        Oggi è {format(today, 'd MMMM', { locale: it })} <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-                    </p>
-                </div>
+            {/* Top Bar - Premium Horizontal Style */}
+            <section className="pt-1">
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-white/5 pb-4"
+                >
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <Sparkles className="h-2.5 w-2.5 text-primary animate-pulse" />
+                            <span className="text-[9px] font-bold text-primary uppercase tracking-[0.3em] opacity-80">Live Well</span>
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tighter leading-none flex items-center gap-3">
+                            Ciao,
+                            <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">
+                                {firstName}
+                            </span>
+                            <span className="inline-block animate-wave origin-[70%_70%]">👋</span>
+                        </h1>
+                    </div>
+
+                    <div className="flex flex-col items-start md:items-end gap-0.5">
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-40">Oggi è</p>
+                        <p className="text-xs md:text-sm text-foreground font-semibold tracking-tight">
+                            {format(today, 'EEEE d MMMM', { locale: it })}
+                        </p>
+                    </div>
+                </motion.div>
             </section>
 
 
