@@ -45,8 +45,7 @@ export function useClientDashboard() {
             let assignQuery = supabase
                 .from('assignments')
                 .select('*')
-                .eq('client_id', profile!.id)
-                .gte('scheduled_date', today);
+                .eq('client_id', profile!.id);
 
             const { data: assignData, error: assignError } = await assignQuery
                 .order('scheduled_date', { ascending: true });
@@ -58,8 +57,7 @@ export function useClientDashboard() {
             const { data: metaData, error: metaError } = await supabase
                 .from('assignments')
                 .select('id, plan_id, type, completed, title')
-                .eq('client_id', profile!.id)
-                .gte('scheduled_date', today);
+                .eq('client_id', profile!.id);
 
             if (metaError) throw metaError;
             setAllAssignmentsMeta(metaData || []);
@@ -114,7 +112,7 @@ export function useClientDashboard() {
         : allAssignmentsMeta.filter(a => a.plan_id === selectedPlanId);
 
     const stats = {
-        habits: new Set(filteredAllMeta.filter(a => a.type === 'habit').map(a => a.title)).size,
+        habits: filteredAllMeta.filter(a => a.type === 'habit').length,
         videos: filteredAllMeta.filter(a => a.type === 'video' && !a.completed).length
     };
 

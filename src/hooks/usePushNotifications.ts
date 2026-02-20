@@ -82,7 +82,7 @@ export function usePushNotifications() {
                     .select('id')
                     .eq('user_id', user.id)
                     .eq('subscription->>endpoint', sub.endpoint)
-                    .single(); // using single() might error if 0 rows, let's use maybeSingle() or just limit(1)
+                    .maybeSingle();
 
                 if (existing) {
                     console.log("Subscription already exists in DB, skipping insert.");
@@ -105,12 +105,20 @@ export function usePushNotifications() {
                     }
                 }
 
+                // Fetch profile role to ensure we satisfy DB constraints
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
                 // Also ensure alert_settings is set to enabled (device connected)
                 const { error: alertError } = await supabase
                     .from('alert_settings')
                     .upsert({
                         user_id: user.id,
                         is_enabled: true,
+                        role: profile?.role || 'client'
                     }, { onConflict: 'user_id' });
 
                 if (alertError) {
