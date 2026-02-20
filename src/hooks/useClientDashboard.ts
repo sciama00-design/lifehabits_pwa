@@ -81,7 +81,13 @@ export function useClientDashboard() {
                     .order('created_at', { ascending: false });
 
                 if (postError) throw postError;
-                setBoardPosts(postData || []);
+                // Filter: only show posts that are broadcast (null/empty target_client_ids) or targeted to this client
+                const userId = profile!.id;
+                const filtered = (postData || []).filter((post: any) => {
+                    if (!post.target_client_ids || post.target_client_ids.length === 0) return true;
+                    return post.target_client_ids.includes(userId);
+                });
+                setBoardPosts(filtered);
             } else {
                 setBoardPosts([]);
             }
