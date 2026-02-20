@@ -244,29 +244,6 @@ export function ClientNotificationsManager({ clientId }: ClientNotificationsMana
                                             </div>
                                             <div className="col-span-2">
                                                 <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1 block">Messaggio</label>
-                                                {/* Replaced input with EmojiTextarea */}
-                                                <div className="relative">
-                                                    <textarea
-                                                        value={newMessage}
-                                                        onChange={(e) => setNewMessage(e.target.value)}
-                                                        placeholder="Messaggio personalizzato"
-                                                        className="w-full bg-background/50 border border-white/10 rounded-lg px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary outline-none resize-none min-h-[80px]"
-                                                        required
-                                                    />
-                                                    {/* Emoji Picker Logic Integrated if Component Failed to Import or Just Using Textarea for Now based on Previous Step Failure Risk? 
-                                                        Wait, I created the component. Let's try to use it properly.
-                                                        But looking at the imports, I see I imported EmojiTextarea.
-                                                        Let me use it.
-                                                     */}
-                                                    <div className="absolute bottom-2 right-2">
-                                                        <EmojiTextarea
-                                                            value={newMessage}
-                                                            onChange={setNewMessage}
-                                                            className="sr-only" // Hidden because we want the textarea visible? No, the component HAS the textarea.
-                                                        />
-                                                    </div>
-                                                    {/* Actually, let's use the component directly instead of this wrapper */}
-                                                </div>
                                                 <EmojiTextarea
                                                     value={newMessage}
                                                     onChange={setNewMessage}

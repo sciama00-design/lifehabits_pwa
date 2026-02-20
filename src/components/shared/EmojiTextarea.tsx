@@ -17,6 +17,8 @@ export function EmojiTextarea({ value, onChange, placeholder, className, require
     const buttonRef = useRef<HTMLButtonElement>(null);
     const pickerRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
+    // Generate a unique ID for each instance
+    const idRef = useRef(`emoji-textarea-${Math.random().toString(36).substr(2, 9)}`);
 
     useEffect(() => {
         if (showPicker && buttonRef.current) {
@@ -79,7 +81,7 @@ export function EmojiTextarea({ value, onChange, placeholder, className, require
     }, [showPicker]);
 
     const onEmojiClick = (emojiData: EmojiClickData) => {
-        const textarea = document.getElementById('emoji-textarea') as HTMLTextAreaElement;
+        const textarea = document.getElementById(idRef.current) as HTMLTextAreaElement;
         const cursorPosition = textarea?.selectionStart || value.length;
         const textBeforeCursor = value.substring(0, cursorPosition);
         const textAfterCursor = value.substring(cursorPosition);
@@ -90,7 +92,7 @@ export function EmojiTextarea({ value, onChange, placeholder, className, require
     return (
         <div className="relative">
             <textarea
-                id="emoji-textarea"
+                id={idRef.current}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
