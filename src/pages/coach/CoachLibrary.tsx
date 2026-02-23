@@ -218,7 +218,7 @@ export default function CoachLibrary() {
                                     </div>
                                     <button
                                         onClick={() => setIsModalOpen(false)}
-                                        className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors text-muted-foreground"
+                                        className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-white/5 transition-all hover:rotate-90 text-muted-foreground"
                                     >
                                         <Plus className="h-4 w-4 rotate-45" />
                                     </button>

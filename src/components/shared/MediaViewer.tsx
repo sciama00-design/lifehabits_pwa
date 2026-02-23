@@ -245,7 +245,7 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description, th
                         </div>
                         <button
                             onClick={onClose}
-                            className="h-12 w-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white transition-all hover:bg-white/10 hover:scale-110 active:scale-90"
+                            className="h-12 w-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white transition-all hover:bg-white/10 hover:scale-110 hover:rotate-90 active:scale-90"
                         >
                             <X className="h-6 w-6" />
                         </button>

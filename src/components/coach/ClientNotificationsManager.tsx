@@ -227,7 +227,7 @@ export function ClientNotificationsManager({ clientId }: ClientNotificationsMana
                                         <button
                                             type="button"
                                             onClick={resetForm}
-                                            className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-foreground"
+                                            className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-foreground transition-all hover:rotate-90"
                                         >
                                             <X className="h-3 w-3" />
                                         </button>

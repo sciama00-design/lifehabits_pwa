@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
 import { useBoardPosts } from '@/hooks/useBoardPosts';
 import { useClients } from '@/hooks/useClients';
-import { Plus, Trash2, Clock, Users, Check, ChevronDown, X, Upload, Pencil } from 'lucide-react';
+import { Plus, Trash2, Clock, Users, Check, ChevronDown, X, Upload, Pencil, Bell, MessageSquarePlus } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { uploadFile, deleteFileFromUrl } from '@/lib/storage';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
+import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
 export default function CoachBoard() {
@@ -12,6 +13,9 @@ export default function CoachBoard() {
     const { clients } = useClients();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const formRef = useRef<HTMLDivElement>(null);
+
+    // Form visibility
+    const [isFormOpen, setIsFormOpen] = useState(false);
 
     // Form State
     const [title, setTitle] = useState('');
@@ -68,6 +72,7 @@ export default function CoachBoard() {
         setExpirationDays('7');
         setSelectedClientIds([]);
         setAddError(null);
+        setIsFormOpen(false);
     };
 
     const handleEdit = (post: any) => {
@@ -90,7 +95,8 @@ export default function CoachBoard() {
             setExpirationDays('never');
         }
 
-        formRef.current?.scrollIntoView({ behavior: 'smooth' });
+        setIsFormOpen(true);
+        setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     };
 
     const handleAdd = async (e: React.FormEvent) => {
@@ -164,296 +170,331 @@ export default function CoachBoard() {
     };
 
     return (
-        <div className="space-y-10">
-            {/* Add Post Section */}
-            <div ref={formRef} className="glass-card border-border p-6 md:p-12 shadow-2xl rounded-[2rem] md:rounded-[3rem] space-y-8 md:space-y-12">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
-                    <div className="flex items-center gap-4 md:gap-6">
-                        <div className={clsx(
-                            "h-10 w-10 md:h-14 md:w-14 rounded-xl md:rounded-2xl flex items-center justify-center transition-all border shadow-inner",
-                            editingPostId ? "bg-amber-500/10 text-amber-500 border-amber-500/20" : "bg-primary/10 text-primary border-primary/20"
-                        )}>
-                            {editingPostId ? <Pencil className="h-5 w-5 md:h-7 md:w-7" /> : <Plus className="h-5 w-5 md:h-7 md:w-7" />}
-                        </div>
-                        <div className="flex flex-col">
-                            <h2 className="text-xl md:text-3xl font-black italic tracking-tighter uppercase leading-none text-foreground">
-                                {editingPostId ? (
-                                    <>Modifica <span className="text-amber-500">Post</span></>
-                                ) : (
-                                    <>Aggiungi <span className="text-primary">Annuncio</span></>
-                                )}
-                            </h2>
-                            <p className="text-[9px] md:text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1 md:mt-2 opacity-80">Communication Center</p>
-                        </div>
+        <div className="space-y-4">
+            {/* ─── CTA Toggle ──────────────────────────────────── */}
+            <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { if (isFormOpen) handleCancel(); else setIsFormOpen(true); }}
+                className="w-full relative overflow-hidden group cursor-pointer p-5 rounded-[var(--radius-xl)] text-left"
+                style={{
+                    background: 'linear-gradient(135deg, #d97706, #f59e0b)',
+                    border: '1px solid rgba(251,191,36,0.3)',
+                }}
+            >
+                <div className="absolute inset-0 opacity-[0.04]" style={{
+                    backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                    backgroundSize: '20px 20px',
+                }} />
+                <div className="absolute top-0 right-0 p-3 opacity-15 group-hover:opacity-25 transition-opacity">
+                    <MessageSquarePlus className="h-12 w-12 text-white" />
+                </div>
+                <div className="relative flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center border border-white/15">
+                        <Plus className="h-5 w-5 text-white transition-transform duration-300" style={{ transform: isFormOpen ? 'rotate(45deg)' : 'rotate(0deg)' }} />
                     </div>
+                    <div>
+                        <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-0.5">
+                            Communication Center
+                        </p>
+                        <h3 className="text-sm font-bold text-white leading-snug">
+                            {isFormOpen ? 'Chiudi' : 'Nuovo Annuncio'}
+                        </h3>
+                    </div>
+                </div>
+            </motion.button>
 
-                    <div className="flex items-center gap-4 w-full sm:w-auto">
-                        {editingPostId && (
-                            <button
-                                onClick={handleCancel}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-3 rounded-[1.5rem] bg-destructive/10 border border-destructive/20 py-4 px-6 text-[10px] font-black uppercase tracking-widest text-destructive transition-all hover:bg-destructive hover:text-white"
-                            >
-                                <X className="h-4 w-4" />
-                                <span>Annulla</span>
-                            </button>
-                        )}
+            {/* ─── Expanded Form ───────────────────────────────────── */}
+            <AnimatePresence>
+                {isFormOpen && (
+                    <motion.div
+                        ref={formRef}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                    >
+                        <div className="glass-card border-border p-5 md:p-8 shadow-2xl rounded-[var(--radius-xl)] space-y-5">
+                            {/* Header */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={clsx(
+                                        "h-9 w-9 rounded-xl flex items-center justify-center transition-all border shadow-inner",
+                                        editingPostId ? "bg-amber-500/10 text-amber-500 border-amber-500/20" : "bg-primary/10 text-primary border-primary/20"
+                                    )}>
+                                        {editingPostId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                    </div>
+                                    <div>
+                                        <h2 className="text-base font-black italic tracking-tighter uppercase leading-none text-foreground">
+                                            {editingPostId ? (
+                                                <>Modifica <span className="text-amber-500">Post</span></>
+                                            ) : (
+                                                <>Nuovo <span className="text-primary">Annuncio</span></>
+                                            )}
+                                        </h2>
+                                    </div>
+                                </div>
 
-                        {/* Client Selector Trigger */}
-                        <div className="relative flex-1 sm:flex-none">
-                            <button
-                                type="button"
-                                onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
-                                className="w-full flex items-center justify-center gap-2 md:gap-3 rounded-[1rem] md:rounded-[1.5rem] bg-muted/30 border border-border py-3 px-4 md:py-4 md:px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 transition-all hover:bg-muted/50 hover:text-foreground"
-                            >
-                                <Users className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
-                                <span>
-                                    {selectedClientIds.length === 0
-                                        ? 'Tutti i Clienti'
-                                        : `${selectedClientIds.length} Selezionati`}
-                                </span>
-                            </button>
-
-                            {isClientDropdownOpen && (
-                                <>
-                                    <div
-                                        className="fixed inset-0 z-[60]"
-                                        onClick={() => setIsClientDropdownOpen(false)}
-                                    />
-                                    <div className="absolute right-0 top-full mt-4 z-[70] w-72 max-h-80 overflow-y-auto rounded-[2rem] border border-border bg-card p-3 shadow-2xl no-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="flex items-center gap-2">
+                                    {/* Client Selector */}
+                                    <div className="relative">
                                         <button
                                             type="button"
-                                            onClick={toggleSelectAll}
-                                            className="w-full flex items-center justify-between p-3 mb-1 rounded-xl text-sm transition-colors hover:bg-muted/50 text-primary font-bold"
+                                            onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
+                                            className="flex items-center justify-center gap-2 rounded-xl bg-muted/30 border border-border py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 transition-all hover:bg-muted/50 hover:text-foreground"
                                         >
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                                                    <Check className={clsx("h-4 w-4 transition-opacity", selectedClientIds.length === clients.length ? "opacity-100" : "opacity-0")} />
-                                                </div>
-                                                <span>Seleziona Tutti</span>
-                                            </div>
+                                            <Users className="h-3.5 w-3.5 text-primary" />
+                                            <span>
+                                                {selectedClientIds.length === 0
+                                                    ? 'Tutti'
+                                                    : `${selectedClientIds.length}`}
+                                            </span>
                                         </button>
-                                        <div className="h-px bg-border my-1" />
-                                        {clients.map(client => (
-                                            <button
-                                                key={client.id}
-                                                type="button"
-                                                onClick={() => toggleClient(client.id)}
-                                                className={clsx(
-                                                    "w-full flex items-center justify-between p-3 rounded-xl text-sm transition-colors mb-1",
-                                                    selectedClientIds.includes(client.id)
-                                                        ? "bg-primary/10 text-primary"
-                                                        : "hover:bg-accent text-muted-foreground"
-                                                )}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-6 w-6 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold">
-                                                        {client.profiles?.full_name?.charAt(0) || '?'}
-                                                    </div>
-                                                    <span className="truncate font-medium">{client.profiles?.full_name}</span>
+
+                                        {isClientDropdownOpen && (
+                                            <>
+                                                <div
+                                                    className="fixed inset-0 z-[60]"
+                                                    onClick={() => setIsClientDropdownOpen(false)}
+                                                />
+                                                <div className="absolute right-0 top-full mt-2 z-[70] w-72 max-h-80 overflow-y-auto rounded-2xl border border-border bg-card p-3 shadow-2xl no-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
+                                                    <button
+                                                        type="button"
+                                                        onClick={toggleSelectAll}
+                                                        className="w-full flex items-center justify-between p-3 mb-1 rounded-xl text-sm transition-colors hover:bg-muted/50 text-primary font-bold"
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+                                                                <Check className={clsx("h-4 w-4 transition-opacity", selectedClientIds.length === clients.length ? "opacity-100" : "opacity-0")} />
+                                                            </div>
+                                                            <span>Seleziona Tutti</span>
+                                                        </div>
+                                                    </button>
+                                                    <div className="h-px bg-border my-1" />
+                                                    {clients.map(client => (
+                                                        <button
+                                                            key={client.id}
+                                                            type="button"
+                                                            onClick={() => toggleClient(client.id)}
+                                                            className={clsx(
+                                                                "w-full flex items-center justify-between p-3 rounded-xl text-sm transition-colors mb-1",
+                                                                selectedClientIds.includes(client.id)
+                                                                    ? "bg-primary/10 text-primary"
+                                                                    : "hover:bg-accent text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="h-6 w-6 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold">
+                                                                    {client.profiles?.full_name?.charAt(0) || '?'}
+                                                                </div>
+                                                                <span className="truncate font-medium">{client.profiles?.full_name}</span>
+                                                            </div>
+                                                            {selectedClientIds.includes(client.id) && <Check className="h-4 w-4" />}
+                                                        </button>
+                                                    ))}
                                                 </div>
-                                                {selectedClientIds.includes(client.id) && <Check className="h-4 w-4" />}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <form onSubmit={handleAdd} className="space-y-6">
-                    <div>
-                        <input
-                            type="text"
-                            required
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="Titolo dell'annuncio..."
-                            className="w-full bg-muted/30 border border-border rounded-2xl py-3 px-5 md:py-5 md:px-8 text-lg md:text-2xl font-black italic uppercase tracking-tighter text-foreground placeholder:text-muted-foreground/50 focus:bg-muted/50 focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all mb-4 md:mb-8 shadow-inner"
-                        />
-
-                        <div className="rounded-[2.5rem] border border-border bg-muted/30 overflow-hidden shadow-inner">
-                            <RichTextEditor
-                                key={editingPostId || 'new'}
-                                value={content}
-                                onChange={setContent}
-                                placeholder="Test annuncio"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Image Preview / Selection */}
-                    <div className="space-y-4">
-                        {(previewUrl || imageUrl) ? (
-                            <div className="relative group rounded-[3rem] overflow-hidden aspect-video bg-muted/30 border border-border shadow-2xl">
-                                <img
-                                    src={previewUrl || imageUrl}
-                                    alt="Anteprima"
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (previewUrl === imageUrl) {
-                                                setImageUrl('');
-                                                setPreviewUrl(null);
-                                            } else {
-                                                removeFile();
-                                            }
-                                        }}
-                                        className="h-16 w-16 rounded-full bg-destructive text-white flex items-center justify-center hover:scale-110 transition-transform shadow-2xl"
-                                    >
-                                        <X className="h-8 w-8" />
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-full group aspect-[21/9] flex flex-col items-center justify-center gap-3 md:gap-4 rounded-[2rem] md:rounded-[3rem] bg-muted/30 border-2 border-dashed border-border text-foreground transition-all hover:bg-muted/50 hover:border-primary/50"
-                            >
-                                <div className="h-10 w-10 md:h-16 md:w-16 rounded-xl md:rounded-[1.5rem] bg-muted/50 flex items-center justify-center text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary transition-all shadow-inner">
-                                    <Upload className="h-5 w-5 md:h-8 md:w-8" />
-                                </div>
-                                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] opacity-40 group-hover:opacity-100 transition-opacity">Carica un'immagine di impatto</span>
-                            </button>
-                        )}
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            accept="image/*"
-                            className="hidden"
-                        />
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                        <div className="relative w-full sm:w-auto group">
-                            <Clock className="absolute left-6 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-hover:text-primary transition-colors pointer-events-none" />
-                            <select
-                                value={expirationDays}
-                                onChange={(e) => setExpirationDays(e.target.value)}
-                                className="w-full sm:w-60 appearance-none rounded-[1rem] md:rounded-[1.5rem] bg-muted/30 border border-border py-3 pl-12 pr-10 md:py-5 md:pl-14 md:pr-12 text-[10px] font-black uppercase tracking-widest text-foreground focus:outline-none focus:ring-8 focus:ring-primary/5 transition-all cursor-pointer shadow-sm"
-                            >
-                                <option value="1" className="bg-background text-foreground">Scadenza: 24 Ore</option>
-                                <option value="3" className="bg-background text-foreground">Scadenza: 3 Giorni</option>
-                                <option value="7" className="bg-background text-foreground">Scadenza: 7 Giorni</option>
-                                <option value="30" className="bg-background text-foreground">Scadenza: 30 Giorni</option>
-                                <option value="never" className="bg-background text-foreground">Senza Limite Temporale</option>
-                            </select>
-                            <ChevronDown className="absolute right-4 md:right-6 top-1/2 h-4 w-4 md:h-5 md:w-5 -translate-y-1/2 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={addLoading || isUploading || !title || !content}
-                            className={clsx(
-                                "w-full flex-1 rounded-[1.5rem] py-3 md:py-5 text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 disabled:scale-100 flex items-center justify-center gap-3 md:gap-4 shadow-xl",
-                                editingPostId ? "bg-amber-500 shadow-amber-500/20" : "bg-primary shadow-primary/20"
-                            )}
-                        >
-                            {(addLoading || isUploading) ? (
-                                <>
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/20 border-t-primary-foreground" />
-                                    <span>Esecuzione in corso...</span>
-                                </>
-                            ) : (
-                                <span>{editingPostId ? 'Salva Modifiche' : 'Archivia & Pubblica'}</span>
-                            )}
-                        </button>
-                    </div>
-                    {addError && <p className="text-[10px] text-destructive font-black uppercase tracking-widest text-center mt-4">{addError}</p>}
-                </form>
-            </div>
-
-            {/* Posts Section */}
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-black italic tracking-tighter uppercase leading-none">
-                        Annunci <span className="text-primary">Globali Attivi</span>
-                    </h2>
-                </div>
-
-                {loading ? (
-                    <div className="grid gap-8 sm:grid-cols-2">
-                        {[1, 2].map((i) => (
-                            <div key={i} className="h-96 rounded-[3rem] bg-muted/30 border border-border animate-pulse" />
-                        ))}
-                    </div>
-                ) : posts.length === 0 ? (
-                    <div className="text-center py-20 rounded-[3rem] bg-muted/10 border border-dashed border-border flex flex-col items-center gap-6">
-                        <div className="h-20 w-20 rounded-3xl bg-muted/20 flex items-center justify-center text-muted-foreground">
-                            <Clock className="h-10 w-10" />
-                        </div>
-                        <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Nessun annuncio attivo nel sistema.</p>
-                    </div>
-                ) : (
-                    <div className="grid gap-8 sm:grid-cols-2">
-                        {posts.map((post) => (
-                            <div
-                                key={post.id}
-                                className="group relative flex flex-col rounded-[3rem] glass-card border-border overflow-hidden transition-all shadow-2xl hover:border-primary/30"
-                            >
-                                <div className="p-8 pb-4">
-                                    <div className="flex items-center justify-between gap-4 mb-2">
-                                        <h3 className="font-ex-bold text-foreground text-2xl italic uppercase tracking-tighter truncate flex-1">{post.title}</h3>
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                onClick={() => handleEdit(post)}
-                                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20 shadow-lg"
-                                                title="Modifica"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(post)}
-                                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 shadow-lg"
-                                                title="Elimina"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-4 opacity-70 flex items-center gap-2">
-                                        <Clock className="h-3 w-3" />
-                                        Creato il {format(new Date(post.created_at), 'dd/MM/yyyy')}
-                                    </p>
-                                </div>
-
-                                {post.image_url && (
-                                    <div className="px-8 mb-6">
-                                        <div className="rounded-[2rem] overflow-hidden aspect-video bg-muted/30 border border-border">
-                                            <img src={post.image_url} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="px-8 flex-1">
-                                    <div className="text-foreground/80 prose prose-invert prose-sm max-w-none mb-8 line-clamp-4 font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: post.content }} />
-                                </div>
-
-                                <div className="p-8 pt-0 mt-auto">
-                                    <div className="flex flex-col gap-4 border-t border-border pt-6">
-                                        <div className="flex items-center gap-3 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
-                                            <Users className="h-4 w-4 text-primary" />
-                                            <span>Target: {post.target_client_ids?.length || clients.length} Clienti</span>
-                                        </div>
-
-                                        {post.expires_at && (
-                                            <div className="inline-flex items-center gap-3 rounded-2xl bg-red-500/5 px-6 py-3 text-[10px] font-black text-red-500 uppercase tracking-widest border border-red-500/10 w-fit">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                                                <span>Scadenza: {format(new Date(post.expires_at), 'dd/MM/yyyy')}</span>
-                                            </div>
+                                            </>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+
+                            {/* Form */}
+                            <form onSubmit={handleAdd} className="space-y-4">
+                                <input
+                                    type="text"
+                                    required
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="Titolo dell'annuncio..."
+                                    className="w-full bg-muted/30 border border-border rounded-xl py-3 px-4 text-sm font-bold text-foreground placeholder:text-muted-foreground/50 focus:bg-muted/50 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all shadow-inner"
+                                />
+
+                                <div className="rounded-2xl border border-border bg-muted/30 overflow-hidden shadow-inner">
+                                    <RichTextEditor
+                                        key={editingPostId || 'new'}
+                                        value={content}
+                                        onChange={setContent}
+                                        placeholder="Testo annuncio"
+                                    />
+                                </div>
+
+                                {/* Image Preview / Selection */}
+                                <div>
+                                    {(previewUrl || imageUrl) ? (
+                                        <div className="relative group rounded-2xl overflow-hidden aspect-video bg-muted/30 border border-border">
+                                            <img
+                                                src={previewUrl || imageUrl}
+                                                alt="Anteprima"
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (previewUrl === imageUrl) {
+                                                            setImageUrl('');
+                                                            setPreviewUrl(null);
+                                                        } else {
+                                                            removeFile();
+                                                        }
+                                                    }}
+                                                    className="h-12 w-12 rounded-full bg-destructive text-white flex items-center justify-center hover:scale-110 hover:rotate-90 transition-all shadow-2xl"
+                                                >
+                                                    <X className="h-6 w-6" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="w-full group flex items-center justify-center gap-3 py-4 rounded-2xl bg-muted/20 border border-dashed border-border text-foreground transition-all hover:bg-muted/40 hover:border-primary/50"
+                                        >
+                                            <Upload className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                            <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 group-hover:opacity-100 transition-opacity">Carica immagine</span>
+                                        </button>
+                                    )}
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        accept="image/*"
+                                        className="hidden"
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <div className="relative flex-1 group">
+                                        <Clock className="absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground group-hover:text-primary transition-colors pointer-events-none" />
+                                        <select
+                                            value={expirationDays}
+                                            onChange={(e) => setExpirationDays(e.target.value)}
+                                            className="w-full appearance-none rounded-xl bg-muted/30 border border-border py-2.5 pl-10 pr-8 text-[9px] font-black uppercase tracking-widest text-foreground focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                                        >
+                                            <option value="1" className="bg-background text-foreground">24 Ore</option>
+                                            <option value="3" className="bg-background text-foreground">3 Giorni</option>
+                                            <option value="7" className="bg-background text-foreground">7 Giorni</option>
+                                            <option value="30" className="bg-background text-foreground">30 Giorni</option>
+                                            <option value="never" className="bg-background text-foreground">Nessun Limite</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={addLoading || isUploading || !title || !content}
+                                        className={clsx(
+                                            "flex-1 rounded-xl py-2.5 text-[9px] font-black uppercase tracking-[0.15em] text-primary-foreground hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 disabled:scale-100 flex items-center justify-center gap-2",
+                                            editingPostId ? "bg-amber-500 shadow-amber-500/20" : "bg-primary shadow-primary/20"
+                                        )}
+                                    >
+                                        {(addLoading || isUploading) ? (
+                                            <>
+                                                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground/20 border-t-primary-foreground" />
+                                                <span>Caricamento...</span>
+                                            </>
+                                        ) : (
+                                            <span>{editingPostId ? 'Salva Modifiche' : 'Pubblica'}</span>
+                                        )}
+                                    </button>
+                                </div>
+                                {addError && <p className="text-[10px] text-destructive font-black uppercase tracking-widest text-center">{addError}</p>}
+                            </form>
+                        </div>
+                    </motion.div>
                 )}
-            </div>
+            </AnimatePresence>
+
+            {/* ─── Posts — Client-Style Horizontal Scroll ───────────── */}
+            {loading ? (
+                <div className="flex gap-3 overflow-x-auto pb-4 snap-x no-scrollbar">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="min-w-[220px] max-w-[220px] h-48 rounded-[var(--radius-xl)] bg-muted/30 border border-border animate-pulse snap-center" />
+                    ))}
+                </div>
+            ) : posts.length === 0 ? (
+                <div className="text-center py-10 rounded-[var(--radius-xl)] bg-muted/10 border border-dashed border-border flex flex-col items-center gap-3">
+                    <div className="h-12 w-12 rounded-2xl bg-muted/20 flex items-center justify-center text-muted-foreground">
+                        <Clock className="h-6 w-6" />
+                    </div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Nessun annuncio attivo</p>
+                </div>
+            ) : (
+                <div className="flex gap-3 overflow-x-auto pb-4 snap-x no-scrollbar">
+                    {posts.map((post) => (
+                        <motion.div
+                            key={post.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            className="min-w-[220px] max-w-[220px] snap-center relative overflow-hidden group rounded-[var(--radius-xl)] flex flex-col"
+                            style={{
+                                background: 'linear-gradient(135deg, #d97706, #f59e0b)',
+                                border: '1px solid rgba(251,191,36,0.3)',
+                            }}
+                        >
+                            {/* Dot pattern */}
+                            <div className="absolute inset-0 opacity-[0.04]" style={{
+                                backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                                backgroundSize: '20px 20px',
+                            }} />
+                            <div className="absolute top-0 right-0 p-3 opacity-15 group-hover:opacity-25 transition-opacity">
+                                <Bell className="h-10 w-10 text-white" />
+                            </div>
+
+                            {post.image_url && (
+                                <img src={post.image_url} alt="" className="w-full h-20 object-cover rounded-t-[var(--radius-xl)]" />
+                            )}
+
+                            <div className="relative p-4 flex-1 flex flex-col">
+                                {/* Date */}
+                                <p className="text-[8px] font-bold text-white/40 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                    <Clock className="h-2.5 w-2.5" />
+                                    {format(new Date(post.created_at), 'dd/MM/yyyy')}
+                                </p>
+
+                                <h4 className="text-xs font-bold text-white mb-1 line-clamp-2">{post.title}</h4>
+                                <div
+                                    className="text-[10px] text-white/60 leading-relaxed line-clamp-2 flex-1"
+                                    dangerouslySetInnerHTML={{ __html: post.content }}
+                                />
+
+                                {/* Meta */}
+                                <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/15">
+                                    <div className="flex items-center gap-1 text-[8px] font-bold text-white/50">
+                                        <Users className="h-2.5 w-2.5" />
+                                        <span>{post.target_client_ids?.length || clients.length}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleEdit(post); }}
+                                            className="h-6 w-6 flex items-center justify-center rounded-lg bg-white/15 text-white hover:bg-white/30 transition-colors"
+                                            title="Modifica"
+                                        >
+                                            <Pencil className="h-3 w-3" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(post); }}
+                                            className="h-6 w-6 flex items-center justify-center rounded-lg bg-white/15 text-white hover:bg-red-500/80 transition-colors"
+                                            title="Elimina"
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {post.expires_at && (
+                                    <div className="mt-2 flex items-center gap-1 text-[8px] font-bold text-white/40">
+                                        <div className="h-1 w-1 rounded-full bg-white/60 animate-pulse" />
+                                        Scade: {format(new Date(post.expires_at), 'dd/MM')}
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

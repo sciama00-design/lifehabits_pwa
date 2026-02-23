@@ -163,7 +163,7 @@ export default function CoachClients() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Email Istituzionale</label>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Email</label>
                                 <div className="relative group">
                                     <Mail className="absolute left-6 top-1/2 h-6 w-6 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                     <input

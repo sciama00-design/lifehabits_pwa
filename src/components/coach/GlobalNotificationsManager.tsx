@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import { Bell, Clock, Plus, Trash2, Loader2, Edit2, X } from 'lucide-react';
+import { Bell, Clock, Plus, Trash2, Edit2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EmojiTextarea } from '@/components/shared/EmojiTextarea';
 
@@ -58,7 +58,6 @@ export function GlobalNotificationsManager() {
         setSaving(true);
         try {
             if (editingId) {
-                // UPDATE
                 const { data, error } = await supabase
                     .from('notification_rules')
                     .update({
@@ -72,12 +71,11 @@ export function GlobalNotificationsManager() {
                 if (error) throw error;
                 setRules(rules.map(r => r.id === editingId ? data : r).sort((a, b) => a.scheduled_time.localeCompare(b.scheduled_time)));
             } else {
-                // INSERT
                 const { data, error } = await supabase
                     .from('notification_rules')
                     .insert({
                         coach_id: profile?.id,
-                        client_id: null, // Global
+                        client_id: null,
                         scheduled_time: newTime,
                         message: newMessage.trim()
                     })
@@ -113,7 +111,6 @@ export function GlobalNotificationsManager() {
     const handleDeleteRule = async (id: string) => {
         if (!confirm('Sei sicuro di voler eliminare questa notifica globale?')) return;
 
-        // Optimistic update
         const previousRules = [...rules];
         setRules(rules.filter(r => r.id !== id));
 
@@ -126,147 +123,186 @@ export function GlobalNotificationsManager() {
             if (error) throw error;
         } catch (err) {
             console.error('Error deleting rule:', err);
-            setRules(previousRules); // Revert
+            setRules(previousRules);
         }
     };
 
     return (
-        <div className="space-y-6 glass-card p-6 rounded-[2rem]">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-primary/10 border border-primary/10 text-primary">
-                        <Bell className="h-5 w-5" />
+        <div className="space-y-4">
+            {/* ─── CTA Toggle ──────────────────────────────────── */}
+            <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { if (isAdding) resetForm(); else { resetForm(); setIsAdding(true); } }}
+                className="w-full relative overflow-hidden group cursor-pointer p-5 rounded-[var(--radius-xl)] text-left"
+                style={{
+                    background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
+                    border: '1px solid rgba(94,234,212,0.3)',
+                }}
+            >
+                <div className="absolute inset-0 opacity-[0.04]" style={{
+                    backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                    backgroundSize: '20px 20px',
+                }} />
+                <div className="absolute top-0 right-0 p-3 opacity-15 group-hover:opacity-25 transition-opacity">
+                    <Bell className="h-12 w-12 text-white" />
+                </div>
+                <div className="relative flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center border border-white/15">
+                        <Plus className="h-5 w-5 text-white transition-transform duration-300" style={{ transform: isAdding ? 'rotate(45deg)' : 'rotate(0deg)' }} />
                     </div>
                     <div>
-                        <h2 className="text-lg font-black italic tracking-tighter uppercase">Notifiche Globali</h2>
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                            Per tutti i tuoi clienti attivi
+                        <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-0.5">
+                            Per tutti i clienti
                         </p>
+                        <h3 className="text-sm font-bold text-white leading-snug">
+                            {isAdding ? 'Chiudi' : 'Nuova Notifica'}
+                        </h3>
                     </div>
                 </div>
+            </motion.button>
 
-                {!isAdding && (
-                    <button
-                        onClick={() => {
-                            resetForm();
-                            setIsAdding(true);
-                        }}
-                        className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                    >
-                        <Plus className="h-5 w-5" />
-                    </button>
-                )}
-            </div>
-
-            <AnimatePresence mode="wait">
+            {/* ─── Expanded Form ───────────────────────────────────── */}
+            <AnimatePresence>
                 {isAdding && (
-                    <motion.form
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        onSubmit={handleSaveRule}
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
                         className="overflow-hidden"
                     >
-                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-4 relative">
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-foreground"
-                            >
-                                <X className="h-3 w-3" />
-                            </button>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div className="col-span-1">
-                                    <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1.5 block">Orario</label>
-                                    <div className="relative">
-                                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+                        <div className="glass-card border-border p-5 md:p-8 shadow-2xl rounded-[var(--radius-xl)] space-y-5">
+                            {/* Header */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-9 w-9 rounded-xl flex items-center justify-center transition-all border shadow-inner bg-teal-500/10 text-teal-500 border-teal-500/20">
+                                        {editingId ? <Edit2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                    </div>
+                                    <h2 className="text-base font-black italic tracking-tighter uppercase leading-none text-foreground">
+                                        {editingId ? (
+                                            <>Modifica <span className="text-teal-500">Notifica</span></>
+                                        ) : (
+                                            <>Nuova <span className="text-teal-500">Notifica</span></>
+                                        )}
+                                    </h2>
+                                </div>
+                            </div>
+
+                            {/* Form */}
+                            <form onSubmit={handleSaveRule} className="space-y-4">
+                                <div className="flex gap-3">
+                                    <div className="relative w-28 shrink-0">
+                                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
                                         <input
                                             type="time"
                                             value={newTime}
                                             onChange={(e) => setNewTime(e.target.value)}
-                                            className="w-full bg-background/50 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                                            className="w-full bg-muted/30 border border-border rounded-xl pl-8 pr-2 py-3 text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <EmojiTextarea
+                                            value={newMessage}
+                                            onChange={setNewMessage}
+                                            placeholder="Es: Ricordati di bere!"
+                                            className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-4 focus:ring-primary/10 outline-none resize-none min-h-[60px]"
                                             required
                                         />
                                     </div>
                                 </div>
-                                <div className="col-span-2">
-                                    <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1.5 block">Messaggio</label>
-                                    <EmojiTextarea
-                                        value={newMessage}
-                                        onChange={setNewMessage}
-                                        placeholder="Es: Ricordati di bere!"
-                                        className="w-full bg-background/50 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-medium focus:ring-1 focus:ring-primary outline-none resize-none min-h-[80px]"
-                                        required
-                                    />
+
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={resetForm}
+                                        className="px-4 py-2.5 bg-muted/30 border border-border text-muted-foreground text-[9px] font-bold uppercase tracking-wider rounded-xl hover:bg-muted/50 transition-colors"
+                                    >
+                                        Annulla
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="px-4 py-2.5 bg-teal-500 text-primary-foreground text-[9px] font-bold uppercase tracking-wider rounded-xl hover:bg-teal-500/90 transition-colors disabled:opacity-50 shadow-lg shadow-teal-500/20"
+                                    >
+                                        {saving ? '...' : (editingId ? 'Salva Modifiche' : 'Aggiungi')}
+                                    </button>
                                 </div>
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={resetForm}
-                                    className="px-4 py-2 bg-white/5 text-muted-foreground text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-white/10 transition-colors"
-                                >
-                                    Annulla
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="px-4 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
-                                >
-                                    {saving ? '...' : (editingId ? 'Salva Modifiche' : 'Aggiungi Notifica')}
-                                </button>
-                            </div>
+                            </form>
                         </div>
-                    </motion.form>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
-            <div className="space-y-3">
-                {loading ? (
-                    <div className="flex justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            {/* ─── Rules — Horizontal Scroll Cards ─────────────────── */}
+            {loading ? (
+                <div className="flex gap-3 overflow-x-auto pb-4 snap-x no-scrollbar">
+                    {[1, 2].map((i) => (
+                        <div key={i} className="min-w-[200px] max-w-[200px] h-32 rounded-[var(--radius-xl)] bg-muted/30 border border-border animate-pulse snap-center" />
+                    ))}
+                </div>
+            ) : rules.length === 0 ? (
+                <div className="text-center py-8 rounded-[var(--radius-xl)] bg-muted/10 border border-dashed border-border flex flex-col items-center gap-3">
+                    <div className="h-10 w-10 rounded-2xl bg-muted/20 flex items-center justify-center text-muted-foreground">
+                        <Bell className="h-5 w-5" />
                     </div>
-                ) : rules.length === 0 ? (
-                    <div className="text-center py-8 border border-dashed border-white/10 rounded-2xl">
-                        <p className="text-sm font-medium text-muted-foreground">Nessuna notifica globale impostata.</p>
-                        <p className="text-xs text-muted-foreground/50 mt-1">Queste notifiche verranno inviate a tutti i tuoi clienti.</p>
-                    </div>
-                ) : (
-                    rules.map((rule) => (
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Nessuna notifica programmata</p>
+                </div>
+            ) : (
+                <div className="flex gap-3 overflow-x-auto pb-4 snap-x no-scrollbar">
+                    {rules.map((rule) => (
                         <motion.div
                             key={rule.id}
                             layout
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            className="group flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-primary/20 transition-colors"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            className="min-w-[200px] max-w-[200px] snap-center relative overflow-hidden group rounded-[var(--radius-xl)] flex flex-col"
+                            style={{
+                                background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
+                                border: '1px solid rgba(94,234,212,0.3)',
+                            }}
                         >
-                            <div className="flex items-center gap-4">
-                                <div className="px-3 py-1.5 rounded-lg bg-background/50 border border-white/5 text-sm font-black font-mono text-primary">
-                                    {rule.scheduled_time.slice(0, 5)}
-                                </div>
-                                <p className="text-sm font-medium text-foreground">{rule.message}</p>
+                            {/* Dot pattern */}
+                            <div className="absolute inset-0 opacity-[0.04]" style={{
+                                backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                                backgroundSize: '20px 20px',
+                            }} />
+                            <div className="absolute top-0 right-0 p-3 opacity-15 group-hover:opacity-25 transition-opacity">
+                                <Bell className="h-10 w-10 text-white" />
                             </div>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => handleEditRule(rule)}
-                                    className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 transition-colors border border-yellow-500/20"
-                                    title="Modifica"
-                                >
-                                    <Edit2 className="h-4 w-4" />
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteRule(rule.id)}
-                                    className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors border border-red-500/20"
-                                    title="Elimina"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </button>
+
+                            <div className="relative p-4 flex-1 flex flex-col">
+                                {/* Time badge */}
+                                <div className="inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-lg bg-black/15 border border-white/10 mb-3">
+                                    <Clock className="h-2.5 w-2.5 text-white/60" />
+                                    <span className="text-[10px] font-black font-mono text-white">{rule.scheduled_time.slice(0, 5)}</span>
+                                </div>
+
+                                <p className="text-xs font-medium text-white/90 line-clamp-3 flex-1">{rule.message}</p>
+
+                                {/* Actions */}
+                                <div className="flex items-center justify-end mt-3 pt-2 border-t border-white/15 gap-1">
+                                    <button
+                                        onClick={() => handleEditRule(rule)}
+                                        className="h-6 w-6 flex items-center justify-center rounded-lg bg-white/15 text-white hover:bg-white/30 transition-colors"
+                                        title="Modifica"
+                                    >
+                                        <Edit2 className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteRule(rule.id)}
+                                        className="h-6 w-6 flex items-center justify-center rounded-lg bg-white/15 text-white hover:bg-red-500/80 transition-colors"
+                                        title="Elimina"
+                                    >
+                                        <Trash2 className="h-3 w-3" />
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
-                    ))
-                )}
-            </div>
-        </div >
+                    ))}
+                </div>
+            )}
+        </div>
     );
 }

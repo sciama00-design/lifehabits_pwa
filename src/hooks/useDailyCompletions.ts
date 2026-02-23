@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 import type { DailyCompletion } from '@/types/database';
@@ -110,12 +110,9 @@ export function useDailyCompletions() {
     }, [completions]);
 
     // Load today's completions on mount
-    useEffect(() => {
-        if (profile) {
-            const today = getTodayStr();
-            fetchCompletions(today, today);
-        }
-    }, [profile]);
+    // REMOVED: This causes race conditions when components like HabitCalendar need to fetch a full month.
+    // Components using this hook (like useClientDashboard and useClientAssignments)
+    // already explicitly call fetchCompletions(today, today) when they mount.
 
     return {
         completions,

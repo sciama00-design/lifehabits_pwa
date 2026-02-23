@@ -210,7 +210,7 @@ export function CoachHabitCalendar({ assignments, clientId }: CoachHabitCalendar
                                 </div>
                                 <button
                                     onClick={() => setSelectedDate(null)}
-                                    className="p-1.5 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+                                    className="p-1.5 rounded-full bg-muted/50 hover:bg-muted transition-all hover:rotate-90"
                                 >
                                     <X className="h-4 w-4 text-foreground" />
                                 </button>

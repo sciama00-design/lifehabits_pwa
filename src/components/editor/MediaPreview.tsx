@@ -148,7 +148,7 @@ export function MediaPreview({ url, file, onClear }: MediaPreviewProps) {
             {onClear && (
                 <button
                     onClick={onClear}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-red-500 transition-colors opacity-0 group-hover:opacity-100 backdrop-blur-sm shadow-lg border border-white/10"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-red-500 transition-all hover:rotate-90 opacity-0 group-hover:opacity-100 backdrop-blur-sm shadow-lg border border-white/10"
                 >
                     <X className="h-4 w-4" />
                 </button>

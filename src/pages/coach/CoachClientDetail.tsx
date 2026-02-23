@@ -615,7 +615,7 @@ export default function CoachClientDetail() {
                                 </div>
                                 <button
                                     onClick={() => setIsAssignmentModalOpen(false)}
-                                    className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted"
+                                    className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted transition-all hover:rotate-90"
                                 >
                                     <X className="h-5 w-5" />
                                 </button>
@@ -720,7 +720,7 @@ export default function CoachClientDetail() {
                                 </div>
                                 <button
                                     onClick={() => setIsPlanModalOpen(false)}
-                                    className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted"
+                                    className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted transition-all hover:rotate-90"
                                 >
                                     <X className="h-5 w-5" />
                                 </button>
@@ -813,7 +813,7 @@ export default function CoachClientDetail() {
                                 </div>
                                 <button
                                     onClick={() => setIsPostModalOpen(false)}
-                                    className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted"
+                                    className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted transition-all hover:rotate-90"
                                 >
                                     <X className="h-5 w-5" />
                                 </button>
@@ -972,7 +972,7 @@ function ColleagueManager({ clientId, fetchColleagues, linkColleague, unlinkColl
                                     setSearchQuery('');
                                     setSearchResults([]);
                                 }}
-                                className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:bg-white/10"
+                                className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:bg-white/10 transition-all hover:rotate-90"
                             >
                                 <X className="h-5 w-5" />
                             </button>

@@ -67,7 +67,7 @@ export function TextPostModal({ isOpen, onClose, title, content, author, date, i
                         </div>
                         <button
                             onClick={onClose}
-                            className="flex-none h-10 w-10 rounded-full flex items-center justify-center bg-muted/20 border border-white/5 text-foreground hover:bg-muted/40 transition-all hover:scale-110 active:scale-95"
+                            className="flex-none h-10 w-10 rounded-full flex items-center justify-center bg-muted/20 border border-white/5 text-foreground hover:bg-muted/40 transition-all hover:scale-110 hover:rotate-90 active:scale-95"
                         >
                             <X className="h-5 w-5" />
                         </button>
