@@ -5,24 +5,19 @@ import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { clientsClaim } from 'workbox-core'
 
 cleanupOutdatedCaches()
-
-if (self.__WB_MANIFEST) {
-    precacheAndRoute(self.__WB_MANIFEST)
-}
+precacheAndRoute(self.__WB_MANIFEST)
 
 self.skipWaiting()
 clientsClaim()
 
-// Cache strategies (copied from previous auto-generated config logic if needed, 
-// but usually specific runtime caching is handled here if complex.
-// For now let's rely on default or re-implement the runtime caching from vite config if needed.
-// Actually, with injectManifest, the `workbox` config in vite.config.ts might be ignored or handled differently.
-// Typically `vite-plugin-pwa` injects the manifest, and we write the rest.
-// We need to re-implement the caching logic here or imported.
-// But for now, let's focus on Push.
-
+// ─────────────────────────────────────────────────────────────
+// PUSH NOTIFICATIONS — iOS/Safari compatible
+// IMPORTANT: Do NOT add badge, vibrate, image, or actions.
+// These options cause showNotification() to fail silently on iOS/Safari.
+// Supported on iOS: body, icon, tag, data, requireInteraction
+// ─────────────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-    let data = { title: 'LifeHabits', body: 'Nuova notifica', url: '/', image: undefined };
+    let data = { title: 'LifeHabits', body: 'Nuova notifica', url: '/' };
 
     try {
         const jsonData = event.data?.json();
@@ -30,21 +25,19 @@ self.addEventListener('push', (event) => {
         data = { ...data, ...jsonData };
     } catch (e) {
         console.error('SW: Error parsing push data', e);
-        // Fallback to text if possible
         data.body = event.data?.text() || data.body;
     }
 
-    const options = {
+    // Minimal notification options — fully iOS/Safari compatible
+    const options: NotificationOptions = {
         body: data.body,
-        icon: '/pwa-192x192.png', // Ensure this path is correct relative to scope
-        badge: '/pwa-192x192.png',
-        image: data.image,
-        vibrate: [100, 50, 100],
+        icon: '/pwa-192x192.png',
+        tag: 'lifehabits-notification',
+        requireInteraction: false,
         data: {
-            url: data.url,
+            url: data.url || '/',
             dateOfArrival: Date.now()
         },
-        // Actions could be added here if needed
     };
 
     event.waitUntil(
@@ -56,23 +49,17 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close()
-
+    const urlToOpen = (event.notification.data as any)?.url || '/';
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Force opening the dashboard regardless of the notification payload
-            const targetUrl = '/';
-
-            // Check if there is already a window/tab open with the target URL
             for (const client of windowClients) {
-                // Check if the client is focusing on the root URL
-                if (client.url === new URL(targetUrl, self.location.origin).href && 'focus' in client) {
+                if (client.url === new URL(urlToOpen, self.location.origin).href && 'focus' in client) {
                     return client.focus()
                 }
             }
-            // If not, open a new window
             if (self.clients.openWindow) {
-                return self.clients.openWindow(targetUrl)
+                return self.clients.openWindow(urlToOpen)
             }
         })
     )

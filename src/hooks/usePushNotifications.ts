@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { urlBase64ToUint8Array } from '@/lib/pushUtils'
+import { urlBase64ToUint8Array, isIOS, isStandalone } from '@/lib/pushUtils'
 import { useAuth } from './useAuth'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string
@@ -12,6 +12,9 @@ export function usePushNotifications() {
     const [subscription, setSubscription] = useState<PushSubscription | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    const iosDevice = isIOS()
+    const standalone = isStandalone()
 
     useEffect(() => {
         if ('Notification' in window) {
@@ -30,6 +33,13 @@ export function usePushNotifications() {
 
     const subscribe = useCallback(async () => {
         console.log("Starting subscribe process...");
+
+        // iOS guard: must be installed as standalone PWA
+        if (iosDevice && !standalone) {
+            setError('Su iPhone le notifiche funzionano solo se installi l\'app sulla Home Screen. Vai su Safari → Condividi → "Aggiungi a Home Screen".')
+            return
+        }
+
         if (!VAPID_PUBLIC_KEY) {
             console.error("VAPID Public Key not found in env");
             setError("Chiave VAPID mancante nel sistema.");
@@ -56,7 +66,7 @@ export function usePushNotifications() {
                 }
             } else if (Notification.permission !== 'granted') {
                 console.log("Permission already denied/non-granted:", Notification.permission);
-                throw new Error('Permesso notifiche bloccato. Abilitalo nel browser.')
+                throw new Error('Permesso notifiche bloccato. Abilitalo nelle impostazioni del dispositivo.')
             }
 
             console.log("Subscribing to PushManager...");
@@ -73,10 +83,6 @@ export function usePushNotifications() {
             const { data: { user } } = await supabase.auth.getUser()
 
             if (user) {
-                // Check if already subscribed with this endpoint
-                // We use upsert logic or verify existence first
-                // Let's try upsert assuming unique constraint on (user_id, subscription->>'endpoint') is active?
-                // Or safer: check existence.
                 const { data: existing } = await supabase
                     .from('push_subscriptions')
                     .select('id')
@@ -94,8 +100,7 @@ export function usePushNotifications() {
                     })
 
                     if (insertError) {
-                        // If constraint fails, we can ignore duplicate key error
-                        if (insertError.code === '23505') { // Unique violation
+                        if (insertError.code === '23505') {
                             console.log("Subscription already exists (caught unique constraint)");
                         } else {
                             console.error("Error saving subscription to DB:", insertError)
@@ -105,14 +110,12 @@ export function usePushNotifications() {
                     }
                 }
 
-                // Fetch profile role to ensure we satisfy DB constraints
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('role')
                     .eq('id', user.id)
                     .single();
 
-                // Also ensure alert_settings is set to enabled (device connected)
                 const { error: alertError } = await supabase
                     .from('alert_settings')
                     .upsert({
@@ -134,7 +137,7 @@ export function usePushNotifications() {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [iosDevice, standalone])
 
     const unsubscribe = useCallback(async () => {
         setLoading(true)
@@ -144,8 +147,6 @@ export function usePushNotifications() {
                 await subscription.unsubscribe();
                 setSubscription(null);
 
-                // Remove from DB using string containment for endpoint which is unique enough
-                // casting to unknown then string to satisfy TS if needed, or just rely on JSON match
                 const { error } = await supabase
                     .from('push_subscriptions')
                     .delete()
@@ -188,5 +189,15 @@ export function usePushNotifications() {
         }
     }, [subscription, user]);
 
-    return { permission, subscription, subscribe, unsubscribe, sendTestNotification, loading, error };
+    return {
+        permission,
+        subscription,
+        subscribe,
+        unsubscribe,
+        sendTestNotification,
+        loading,
+        error,
+        isIOS: iosDevice,
+        isStandalone: standalone,
+    };
 }

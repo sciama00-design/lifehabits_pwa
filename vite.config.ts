@@ -4,8 +4,6 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// ...
-
 export default defineConfig({
   plugins: [
     react(),
@@ -15,6 +13,14 @@ export default defineConfig({
       devOptions: {
         enabled: true,
         type: 'module',
+      },
+      // Use injectManifest so we can write a fully custom SW (required for push on iOS)
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
@@ -47,11 +53,6 @@ export default defineConfig({
           }
         ]
       },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        importScripts: ['custom-sw.js'],
-      }
     })
   ],
 

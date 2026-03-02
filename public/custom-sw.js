@@ -1,8 +1,9 @@
 // Custom Service Worker logic for Push Notifications
 // Imported via workbox.importScripts in vite.config.ts
+// iOS/Safari compatible: no badge, vibrate, or image options
 
 self.addEventListener('push', (event) => {
-    let data = { title: 'LifeHabits', body: 'Nuova notifica', url: '/', image: undefined };
+    let data = { title: 'LifeHabits', body: 'Nuova notifica', url: '/' };
 
     try {
         if (event.data) {
@@ -12,20 +13,20 @@ self.addEventListener('push', (event) => {
         }
     } catch (e) {
         console.error('SW: Error parsing push data', e);
-        // Fallback to text if possible
         data.body = (event.data && event.data.text()) || data.body;
     }
 
+    // iOS/Safari only supports: body, icon, tag, data, requireInteraction
+    // Do NOT include: badge, vibrate, image, actions — they cause showNotification() to fail silently on iOS
     const options = {
         body: data.body,
         icon: '/pwa-192x192.png',
-        badge: '/pwa-192x192.png',
-        image: data.image,
-        vibrate: [100, 50, 100],
+        tag: 'lifehabits-notification',
         data: {
-            url: data.url,
+            url: data.url || '/',
             dateOfArrival: Date.now()
         },
+        requireInteraction: false,
     };
 
     event.waitUntil(
@@ -41,13 +42,11 @@ self.addEventListener('notificationclick', (event) => {
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Check if there is already a window/tab open with the target URL
             for (const client of windowClients) {
                 if (client.url === urlToOpen && 'focus' in client) {
                     return client.focus();
                 }
             }
-            // If not, open a new window
             if (self.clients.openWindow) {
                 return self.clients.openWindow(urlToOpen);
             }
