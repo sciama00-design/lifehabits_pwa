@@ -33,7 +33,7 @@ jobs:
             "https://${PROJECT_REF}.supabase.co/storage/v1/object/list/${BUCKET_NAME}" \
             -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
             -H "Content-Type: application/json" \
-            -d '{"limit": 1000, "offset": 0, "prefix": ""}' \
+            -d '{"limit": 1000, "offset": 0, "prefix": "uploads/"}' \
             -o objects.json
 
           echo "=== File trovati nel bucket ==="
@@ -47,7 +47,7 @@ jobs:
           NAMES=$(cat objects.json | jq -r '.[].name')
 
           for NAME in $NAMES; do
-            # Ricrea la struttura di cartelle localmente
+            # Ricrea la struttura di cartelle localmente (es. uploads/foto.jpg)
             DIR=$(dirname "media_backup/${NAME}")
             mkdir -p "$DIR"
 

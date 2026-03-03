@@ -7,47 +7,76 @@ on:
   workflow_dispatch:
     # Eseguibile manualmente dalla UI di GitHub Actions
 
+env:
+  PROJECT_REF: gkbxiyzmtrxukpoaqdqn
+  # Connection string via Supabase pooler (Transaction mode, port 5432)
+  # Formato: postgresql://postgres.[ref]:[password]@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
+
 jobs:
   backup-db:
-    name: Full DB Dump (schema + data)
+    name: Full DB Dump (schema + dati completi)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Link project
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      - name: Installa postgresql-client (pg_dump)
         run: |
-          supabase link --project-ref gkbxiyzmtrxukpoaqdqn --yes -p "$DB_PASSWORD"
+          sudo apt-get update -q
+          sudo apt-get install -y postgresql-client
 
-      - name: Dump schema (DDL only)
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: |
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          supabase db dump --linked -p "$DB_PASSWORD" \
-            -f "schema_${TIMESTAMP}.sql"
+      - name: Imposta timestamp condiviso
+        run: echo "TIMESTAMP=$(date +%Y%m%d_%H%M%S)" >> $GITHUB_ENV
 
-      - name: Dump data only (DML — tutte le tabelle public)
+      # ── 1. SCHEMA completo (DDL) via pg_dump ────────────────────────────
+      - name: Dump schema DDL (public + auth)
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          supabase db dump --linked -p "$DB_PASSWORD" \
+          pg_dump \
+            --host=aws-0-eu-west-1.pooler.supabase.com \
+            --port=5432 \
+            --username=postgres.${PROJECT_REF} \
+            --dbname=postgres \
+            --schema-only \
+            --no-owner \
+            --no-acl \
+            --schema=public \
+            --schema=auth \
+            --file="schema_${TIMESTAMP}.sql"
+
+          echo "=== Schema dump size ==="
+          du -sh "schema_${TIMESTAMP}.sql"
+
+      # ── 2. DATI completi (DML) via pg_dump ──────────────────────────────
+      - name: Dump dati (public + auth — tutti i record)
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          pg_dump \
+            --host=aws-0-eu-west-1.pooler.supabase.com \
+            --port=5432 \
+            --username=postgres.${PROJECT_REF} \
+            --dbname=postgres \
             --data-only \
-            -f "data_${TIMESTAMP}.sql"
+            --no-owner \
+            --no-acl \
+            --schema=public \
+            --schema=auth \
+            --file="data_${TIMESTAMP}.sql"
 
+          echo "=== Data dump size ==="
+          du -sh "data_${TIMESTAMP}.sql"
+
+          echo "=== Righe per tabella (anteprima) ==="
+          grep -c "^INSERT" "data_${TIMESTAMP}.sql" || echo "0 INSERT statements"
+
+      # ── 3. Compressione & upload ─────────────────────────────────────────
       - name: Comprimi i dump
         run: |
-          TIMESTAMP=$(date +%Y%m%d)
-          zip "db_backup_${TIMESTAMP}.zip" schema_*.sql data_*.sql
+          DATE=$(date +%Y%m%d)
+          zip "db_backup_${DATE}.zip" schema_*.sql data_*.sql
+          
+          echo "=== Backup finale ==="
+          du -sh "db_backup_${DATE}.zip"
 
       - name: Upload artifact su GitHub
         uses: actions/upload-artifact@v4
