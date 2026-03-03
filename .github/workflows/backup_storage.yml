@@ -5,11 +5,11 @@ on:
     # Ogni domenica alle 03:00 UTC
     - cron: '0 3 * * 0'
   workflow_dispatch:
-    # Eseguibile manualmente dalla UI di GitHub Actions
 
 env:
   PROJECT_REF: gkbxiyzmtrxukpoaqdqn
   BUCKET_NAME: media
+  FOLDER_PREFIX: uploads
 
 jobs:
   backup-storage:
@@ -20,62 +20,92 @@ jobs:
       - name: Installa dipendenze (curl, jq, zip)
         run: sudo apt-get install -y curl jq zip
 
-      - name: Scarica lista file dal bucket via Management API
+      - name: Scarica lista file dal bucket
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          mkdir -p media_backup
+          mkdir -p "media_backup/${FOLDER_PREFIX}"
 
-          # Recupera la lista di tutti gli oggetti nel bucket (paginazione 1000 per volta)
+          # L'API /list restituisce i nomi SENZA il prefisso (solo il filename)
+          # Usiamo il prefisso "uploads/" per listare solo quella cartella
           curl -s \
             -X POST \
             "https://${PROJECT_REF}.supabase.co/storage/v1/object/list/${BUCKET_NAME}" \
             -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
             -H "Content-Type: application/json" \
-            -d '{"limit": 1000, "offset": 0, "prefix": "uploads/"}' \
+            -d "{\"limit\": 1000, \"offset\": 0, \"prefix\": \"${FOLDER_PREFIX}/\"}" \
             -o objects.json
 
-          echo "=== File trovati nel bucket ==="
+          echo "=== Risposta API lista ==="
+          cat objects.json | jq '.'
+
+          echo "=== Nomi file trovati ==="
           cat objects.json | jq -r '.[].name'
+          
+          TOTAL=$(cat objects.json | jq '. | length')
+          echo "Totale oggetti: ${TOTAL}"
 
       - name: Scarica tutti i file
         env:
           SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          # Leggi i nomi dei file e scaricali uno per uno
           NAMES=$(cat objects.json | jq -r '.[].name')
+          SUCCESS=0
+          FAILED=0
 
           for NAME in $NAMES; do
-            # Ricrea la struttura di cartelle localmente (es. uploads/foto.jpg)
-            DIR=$(dirname "media_backup/${NAME}")
-            mkdir -p "$DIR"
+            # L'API restituisce solo il filename (es. "foto.jpg")
+            # Il path completo nel bucket è: uploads/foto.jpg
+            FULL_PATH="${FOLDER_PREFIX}/${NAME}"
+            LOCAL_PATH="media_backup/${FULL_PATH}"
+            
+            mkdir -p "$(dirname "$LOCAL_PATH")"
 
-            echo "Scaricando: ${NAME}"
-            curl -s \
+            echo "Scaricando: ${FULL_PATH}"
+            
+            # Controlla il HTTP status code, non scrivere se errore
+            HTTP_STATUS=$(curl -s -o "$LOCAL_PATH" \
+              -w "%{http_code}" \
               -L \
-              "https://${PROJECT_REF}.supabase.co/storage/v1/object/${BUCKET_NAME}/${NAME}" \
-              -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
-              -o "media_backup/${NAME}"
+              "https://${PROJECT_REF}.supabase.co/storage/v1/object/${BUCKET_NAME}/${FULL_PATH}" \
+              -H "Authorization: Bearer ${SERVICE_ROLE_KEY}")
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              SIZE=$(du -sh "$LOCAL_PATH" | cut -f1)
+              echo "  ✅ OK (${SIZE}, HTTP ${HTTP_STATUS})"
+              SUCCESS=$((SUCCESS + 1))
+            else
+              echo "  ❌ ERRORE HTTP ${HTTP_STATUS} per ${FULL_PATH}"
+              # Mostra la risposta di errore per debug
+              cat "$LOCAL_PATH"
+              rm -f "$LOCAL_PATH"
+              FAILED=$((FAILED + 1))
+            fi
           done
 
-          echo "=== Download completato ==="
-          find media_backup -type f | wc -l
-          echo "file scaricati"
+          echo ""
+          echo "=== Riepilogo download ==="
+          echo "✅ Successi: ${SUCCESS}"
+          echo "❌ Falliti:  ${FAILED}"
+          
+          # Mostra dimensione totale cartella
+          du -sh media_backup/
 
       - name: Comprimi il backup
         run: |
           TIMESTAMP=$(date +%Y%m%d)
+          
+          FILE_COUNT=$(find media_backup -type f | wc -l)
+          echo "File da comprimere: ${FILE_COUNT}"
+          
           zip -r "storage_backup_${TIMESTAMP}.zip" media_backup/
           
-          # Mostra dimensione totale
-          du -sh "storage_backup_${TIMESTAMP}.zip"
+          echo "=== Backup finale ===" && du -sh "storage_backup_${TIMESTAMP}.zip"
 
       - name: Upload artifact su GitHub
         uses: actions/upload-artifact@v4
         with:
           name: storage-backup-${{ github.run_id }}
           path: storage_backup_*.zip
-          # 90 giorni (max piano Free GitHub)
           retention-days: 90
           if-no-files-found: error
