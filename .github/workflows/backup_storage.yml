@@ -1,4 +1,4 @@
-name: 📦 Weekly Storage Backup
+name: 📦 Weekly Storage Backup (Incremental)
 
 on:
   schedule:
@@ -13,21 +13,43 @@ env:
 
 jobs:
   backup-storage:
-    name: Download & Archive Storage Bucket
+    name: Incremental Storage Sync
     runs-on: ubuntu-latest
 
     steps:
-      - name: Installa dipendenze (curl, jq, zip)
-        run: sudo apt-get install -y curl jq zip
+      - name: Installa dipendenze
+        run: sudo apt-get install -y curl jq zip unzip
 
-      - name: Scarica lista file dal bucket
+      # ── 1. Ripristina backup precedente ──────────────────────────────────
+      - name: Scarica ultimo backup artifact (se esiste)
+        id: prev_artifact
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true   # al primo run non esiste ancora
+        with:
+          workflow: backup_storage.yml
+          name: storage-backup-latest
+          path: prev_artifact/
+          # Prende l'artifact dal run riuscito più recente
+          if_no_artifact_found: ignore
+
+      - name: Estrai backup precedente (se presente)
+        run: |
+          mkdir -p media_backup
+
+          if ls prev_artifact/storage_backup_latest.zip 2>/dev/null; then
+            echo "Backup precedente trovato, estrazione..."
+            unzip -q prev_artifact/storage_backup_latest.zip -d .
+            echo "File estratti:"
+            find media_backup -type f | sort
+          else
+            echo "Nessun backup precedente (primo run)"
+          fi
+
+      # ── 2. Lista attuale dal bucket ───────────────────────────────────────
+      - name: Recupera lista corrente dal bucket
         env:
           SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          mkdir -p "media_backup/${FOLDER_PREFIX}"
-
-          # L'API /list restituisce i nomi SENZA il prefisso (solo il filename)
-          # Usiamo il prefisso "uploads/" per listare solo quella cartella
           curl -s \
             -X POST \
             "https://${PROJECT_REF}.supabase.co/storage/v1/object/list/${BUCKET_NAME}" \
@@ -36,34 +58,65 @@ jobs:
             -d "{\"limit\": 1000, \"offset\": 0, \"prefix\": \"${FOLDER_PREFIX}/\"}" \
             -o objects.json
 
-          echo "=== Risposta API lista ==="
-          cat objects.json | jq '.'
-
-          echo "=== Nomi file trovati ==="
+          echo "=== File nel bucket ==="
           cat objects.json | jq -r '.[].name'
           
           TOTAL=$(cat objects.json | jq '. | length')
-          echo "Totale oggetti: ${TOTAL}"
+          echo "Totale file nel bucket: ${TOTAL}"
 
-      - name: Scarica tutti i file
+      # ── 3. Sync: aggiungi nuovi, rimuovi cancellati ───────────────────────
+      - name: Sync incrementale
         env:
           SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          NAMES=$(cat objects.json | jq -r '.[].name')
-          SUCCESS=0
+          # Crea lista dei file attualmente nel bucket (path completo)
+          cat objects.json | jq -r '.[].name' | while read NAME; do
+            echo "${FOLDER_PREFIX}/${NAME}"
+          done > bucket_files.txt
+
+          # Crea lista dei file già in locale nel backup
+          find media_backup -type f 2>/dev/null | sed 's|media_backup/||' | sort > local_files.txt
+
+          echo "=== File nel bucket ==="
+          cat bucket_files.txt
+
+          echo "=== File già in locale ==="
+          cat local_files.txt
+
+          # File da SCARICARE: presenti nel bucket ma non in locale
+          comm -23 <(sort bucket_files.txt) <(sort local_files.txt) > to_download.txt
+          # File da ELIMINARE: presenti in locale ma non più nel bucket
+          comm -13 <(sort bucket_files.txt) <(sort local_files.txt) > to_delete.txt
+
+          echo ""
+          echo "=== DA SCARICARE (nuovi/mancanti) ==="
+          cat to_download.txt
+          DL_COUNT=$(wc -l < to_download.txt)
+          echo "Totale: ${DL_COUNT}"
+
+          echo ""
+          echo "=== DA ELIMINARE (rimossi dal bucket) ==="
+          cat to_delete.txt
+          DEL_COUNT=$(wc -l < to_delete.txt)
+          echo "Totale: ${DEL_COUNT}"
+
+          # ── Elimina file rimossi dal bucket
+          while IFS= read -r RELPATH; do
+            [ -z "$RELPATH" ] && continue
+            echo "🗑️  Rimuovendo: ${RELPATH}"
+            rm -f "media_backup/${RELPATH}"
+          done < to_delete.txt
+
+          # ── Scarica solo i file mancanti
+          DOWNLOADED=0
           FAILED=0
 
-          for NAME in $NAMES; do
-            # L'API restituisce solo il filename (es. "foto.jpg")
-            # Il path completo nel bucket è: uploads/foto.jpg
-            FULL_PATH="${FOLDER_PREFIX}/${NAME}"
+          while IFS= read -r FULL_PATH; do
+            [ -z "$FULL_PATH" ] && continue
             LOCAL_PATH="media_backup/${FULL_PATH}"
-            
             mkdir -p "$(dirname "$LOCAL_PATH")"
 
-            echo "Scaricando: ${FULL_PATH}"
-            
-            # Controlla il HTTP status code, non scrivere se errore
+            echo "⬇️  Scaricando: ${FULL_PATH}"
             HTTP_STATUS=$(curl -s -o "$LOCAL_PATH" \
               -w "%{http_code}" \
               -L \
@@ -72,40 +125,51 @@ jobs:
 
             if [ "$HTTP_STATUS" = "200" ]; then
               SIZE=$(du -sh "$LOCAL_PATH" | cut -f1)
-              echo "  ✅ OK (${SIZE}, HTTP ${HTTP_STATUS})"
-              SUCCESS=$((SUCCESS + 1))
+              echo "  ✅ OK (${SIZE})"
+              DOWNLOADED=$((DOWNLOADED + 1))
             else
-              echo "  ❌ ERRORE HTTP ${HTTP_STATUS} per ${FULL_PATH}"
-              # Mostra la risposta di errore per debug
+              echo "  ❌ HTTP ${HTTP_STATUS} — scartato"
               cat "$LOCAL_PATH"
               rm -f "$LOCAL_PATH"
               FAILED=$((FAILED + 1))
             fi
-          done
+          done < to_download.txt
 
           echo ""
-          echo "=== Riepilogo download ==="
-          echo "✅ Successi: ${SUCCESS}"
-          echo "❌ Falliti:  ${FAILED}"
-          
-          # Mostra dimensione totale cartella
+          echo "================================================"
+          echo "📊 Riepilogo sync:"
+          TOTAL_LOCAL=$(find media_backup -type f 2>/dev/null | wc -l)
+          echo "  ⬇️  Nuovi scaricati:   ${DOWNLOADED}"
+          echo "  🗑️  Eliminati:         ${DEL_COUNT}"
+          echo "  ❌ Falliti:            ${FAILED}"
+          echo "  📁 Totale in backup:  ${TOTAL_LOCAL}"
+          echo "================================================"
           du -sh media_backup/
 
-      - name: Comprimi il backup
+      # ── 4. Comprimi e carica ─────────────────────────────────────────────
+      - name: Comprimi backup aggiornato
         run: |
           TIMESTAMP=$(date +%Y%m%d)
-          
-          FILE_COUNT=$(find media_backup -type f | wc -l)
-          echo "File da comprimere: ${FILE_COUNT}"
-          
           zip -r "storage_backup_${TIMESTAMP}.zip" media_backup/
-          
-          echo "=== Backup finale ===" && du -sh "storage_backup_${TIMESTAMP}.zip"
 
-      - name: Upload artifact su GitHub
+          # Crea anche una copia con nome fisso per il prossimo run
+          cp "storage_backup_${TIMESTAMP}.zip" "storage_backup_latest.zip"
+
+          echo "=== Backup finale ===" && du -sh "storage_backup_${TIMESTAMP}.zip"
+          echo "File totali: $(find media_backup -type f | wc -l)"
+
+      - name: Upload artifact (con timestamp — archivio storico)
         uses: actions/upload-artifact@v4
         with:
           name: storage-backup-${{ github.run_id }}
-          path: storage_backup_*.zip
+          path: storage_backup_2*.zip
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Upload artifact (nome fisso — usato dal run successivo)
+        uses: actions/upload-artifact@v4
+        with:
+          name: storage-backup-latest
+          path: storage_backup_latest.zip
           retention-days: 90
           if-no-files-found: error
