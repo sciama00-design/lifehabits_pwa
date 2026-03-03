@@ -1,0 +1,59 @@
+name: 🗄️ Daily DB Backup
+
+on:
+  schedule:
+    # Ogni notte alle 02:30 UTC
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+    # Eseguibile manualmente dalla UI di GitHub Actions
+
+jobs:
+  backup-db:
+    name: Full DB Dump (schema + data)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref gkbxiyzmtrxukpoaqdqn --yes -p "$DB_PASSWORD"
+
+      - name: Dump schema (DDL only)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          supabase db dump --linked -p "$DB_PASSWORD" \
+            -f "schema_${TIMESTAMP}.sql"
+
+      - name: Dump data only (DML — tutte le tabelle public)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          supabase db dump --linked -p "$DB_PASSWORD" \
+            --data-only \
+            -f "data_${TIMESTAMP}.sql"
+
+      - name: Comprimi i dump
+        run: |
+          TIMESTAMP=$(date +%Y%m%d)
+          zip "db_backup_${TIMESTAMP}.zip" schema_*.sql data_*.sql
+
+      - name: Upload artifact su GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: db_backup_*.zip
+          # 90 giorni (max piano Free GitHub)
+          retention-days: 90
+          if-no-files-found: error

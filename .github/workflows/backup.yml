@@ -1,36 +1,21 @@
-name: Supabase Nightly Backup
+# DEPRECATED — questo workflow è stato sostituito da:
+#   - backup_db.yml      → backup giornaliero completo (schema + dati)
+#   - backup_storage.yml → backup settimanale dei media
+#
+# Lasciato qui come riferimento storico. NON verrà eseguito.
+
+name: ⚠️ DEPRECATED - Old DB Backup
 
 on:
-  schedule:
-    # Ogni notte alle 02:00 UTC
-    - cron: '0 2 * * *'
   workflow_dispatch:
-    # Permette di eseguire il backup manualmente dalla UI di GitHub Actions
+    # Solo esecuzione manuale, NON più schedulato
 
 jobs:
-  backup:
-    name: Export & Archive DB
+  deprecated:
+    name: Noop - workflow deprecato
     runs-on: ubuntu-latest
-
     steps:
-      - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Export database dump
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      - name: Info
         run: |
-          supabase link --project-ref gkbxiyzmtrxukpoaqdqn --yes -p "$DB_PASSWORD"
-          supabase db dump --linked -p "$DB_PASSWORD" -f "backup_$(date +%Y%m%d_%H%M%S).sql"
-
-      - name: Upload backup as GitHub Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: db-backup-${{ github.run_id }}-${{ github.run_attempt }}
-          path: backup_*.sql
-          # Conserva per 90 giorni (max sul piano Free di GitHub)
-          retention-days: 90
-          if-no-files-found: error
+          echo "Questo workflow è stato sostituito da backup_db.yml e backup_storage.yml"
+          echo "Non fare nulla."

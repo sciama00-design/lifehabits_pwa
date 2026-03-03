@@ -1,0 +1,81 @@
+name: 📦 Weekly Storage Backup
+
+on:
+  schedule:
+    # Ogni domenica alle 03:00 UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    # Eseguibile manualmente dalla UI di GitHub Actions
+
+env:
+  PROJECT_REF: gkbxiyzmtrxukpoaqdqn
+  BUCKET_NAME: media
+
+jobs:
+  backup-storage:
+    name: Download & Archive Storage Bucket
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Installa dipendenze (curl, jq, zip)
+        run: sudo apt-get install -y curl jq zip
+
+      - name: Scarica lista file dal bucket via Management API
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          mkdir -p media_backup
+
+          # Recupera la lista di tutti gli oggetti nel bucket (paginazione 1000 per volta)
+          curl -s \
+            -X POST \
+            "https://${PROJECT_REF}.supabase.co/storage/v1/object/list/${BUCKET_NAME}" \
+            -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"limit": 1000, "offset": 0, "prefix": ""}' \
+            -o objects.json
+
+          echo "=== File trovati nel bucket ==="
+          cat objects.json | jq -r '.[].name'
+
+      - name: Scarica tutti i file
+        env:
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # Leggi i nomi dei file e scaricali uno per uno
+          NAMES=$(cat objects.json | jq -r '.[].name')
+
+          for NAME in $NAMES; do
+            # Ricrea la struttura di cartelle localmente
+            DIR=$(dirname "media_backup/${NAME}")
+            mkdir -p "$DIR"
+
+            echo "Scaricando: ${NAME}"
+            curl -s \
+              -L \
+              "https://${PROJECT_REF}.supabase.co/storage/v1/object/${BUCKET_NAME}/${NAME}" \
+              -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+              -o "media_backup/${NAME}"
+          done
+
+          echo "=== Download completato ==="
+          find media_backup -type f | wc -l
+          echo "file scaricati"
+
+      - name: Comprimi il backup
+        run: |
+          TIMESTAMP=$(date +%Y%m%d)
+          zip -r "storage_backup_${TIMESTAMP}.zip" media_backup/
+          
+          # Mostra dimensione totale
+          du -sh "storage_backup_${TIMESTAMP}.zip"
+
+      - name: Upload artifact su GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: storage-backup-${{ github.run_id }}
+          path: storage_backup_*.zip
+          # 90 giorni (max piano Free GitHub)
+          retention-days: 90
+          if-no-files-found: error
