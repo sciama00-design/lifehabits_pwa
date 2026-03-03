@@ -27,74 +27,90 @@ import BreathingExercise from '@/pages/client/BreathingExercise';
 import { CoachSelectionProvider } from '@/context/CoachSelectionContext';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { InstallPWA } from '@/components/shared/InstallPWA';
+import PrivacyConsentModal from '@/components/shared/PrivacyConsentModal';
+import { useAuth } from '@/hooks/useAuth';
 
+function AppContent() {
+  const { user, profile } = useAuth();
+  const needsPrivacyConsent =
+    !!user &&
+    profile?.role === 'client' &&
+    !profile?.privacy_accepted_at;
+
+  return (
+    <>
+      <InstallPWA />
+      {needsPrivacyConsent && <PrivacyConsentModal />}
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/scaduto" element={<Expired />} />
+
+        {/* Client Routes */}
+        <Route element={
+          <SubscriptionGuard>
+            <CoachSelectionProvider>
+              <ClientLayout />
+            </CoachSelectionProvider>
+          </SubscriptionGuard>
+        }>
+          <Route path="/" element={<ClientDashboard />} />
+          <Route path="/habits" element={<ClientHabits />} />
+          <Route path="/videos" element={<ClientVideos />} />
+          <Route path="/breathing" element={<BreathingExercise />} />
+          <Route path="profile" element={<Settings />} />
+        </Route>
+
+        {/* Coach Routes */}
+        <Route
+          path="/coach"
+          element={
+            <CoachGuard>
+              <CoachLayout />
+            </CoachGuard>
+          }
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<CoachDashboard />} />
+          <Route path="clients" element={<CoachClients />} />
+          <Route path="clients/:clientId" element={<CoachClientDetail />} />
+          <Route path="library" element={<CoachLibrary />} />
+          <Route path="board" element={<CoachBoard />} />
+          <Route path="system" element={<SystemMonitor />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <AdminGuard>
+              <AdminLayout />
+            </AdminGuard>
+          }
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="coaches" element={<AdminCoaches />} />
+          <Route path="clients" element={<AdminClients />} />
+          <Route path="content" element={<AdminContent />} />
+          <Route path="system" element={<AdminSystem />} />
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
+  );
+}
 
 function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <InstallPWA />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/scaduto" element={<Expired />} />
-
-          {/* Client Routes */}
-          <Route element={
-            <SubscriptionGuard>
-              <CoachSelectionProvider>
-                <ClientLayout />
-              </CoachSelectionProvider>
-            </SubscriptionGuard>
-          }>
-            <Route path="/" element={<ClientDashboard />} />
-            <Route path="/habits" element={<ClientHabits />} />
-            <Route path="/videos" element={<ClientVideos />} />
-            <Route path="/breathing" element={<BreathingExercise />} />
-            <Route path="profile" element={<Settings />} />
-          </Route>
-
-          {/* Coach Routes */}
-          <Route
-            path="/coach"
-            element={
-              <CoachGuard>
-                <CoachLayout />
-              </CoachGuard>
-            }
-          >
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<CoachDashboard />} />
-            <Route path="clients" element={<CoachClients />} />
-            <Route path="clients/:clientId" element={<CoachClientDetail />} />
-            <Route path="library" element={<CoachLibrary />} />
-            <Route path="board" element={<CoachBoard />} />
-            <Route path="system" element={<SystemMonitor />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-
-          {/* Admin Routes */}
-          <Route
-            path="/admin"
-            element={
-              <AdminGuard>
-                <AdminLayout />
-              </AdminGuard>
-            }
-          >
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="coaches" element={<AdminCoaches />} />
-            <Route path="clients" element={<AdminClients />} />
-            <Route path="content" element={<AdminContent />} />
-            <Route path="system" element={<AdminSystem />} />
-          </Route>
-
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <AppContent />
       </BrowserRouter>
-    </ErrorBoundary >
+    </ErrorBoundary>
   );
 }
 

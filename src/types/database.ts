@@ -7,6 +7,7 @@ export interface Profile {
     role: UserRole;
     avatar_url: string | null;
     created_at: string;
+    privacy_accepted_at: string | null;
 }
 
 export interface SubscriptionPlan {
