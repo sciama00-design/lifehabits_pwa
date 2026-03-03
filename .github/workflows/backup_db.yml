@@ -5,12 +5,9 @@ on:
     # Ogni notte alle 02:30 UTC
     - cron: '30 2 * * *'
   workflow_dispatch:
-    # Eseguibile manualmente dalla UI di GitHub Actions
 
 env:
   PROJECT_REF: gkbxiyzmtrxukpoaqdqn
-  # Connection string via Supabase pooler (Transaction mode, port 5432)
-  # Formato: postgresql://postgres.[ref]:[password]@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
 
 jobs:
   backup-db:
@@ -26,15 +23,15 @@ jobs:
       - name: Imposta timestamp condiviso
         run: echo "TIMESTAMP=$(date +%Y%m%d_%H%M%S)" >> $GITHUB_ENV
 
-      # ── 1. SCHEMA completo (DDL) via pg_dump ────────────────────────────
+      # ── 1. SCHEMA completo (DDL) ─────────────────────────────────────────
       - name: Dump schema DDL (public + auth)
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           pg_dump \
-            --host=aws-0-eu-west-1.pooler.supabase.com \
+            --host=db.${PROJECT_REF}.supabase.co \
             --port=5432 \
-            --username=postgres.${PROJECT_REF} \
+            --username=postgres \
             --dbname=postgres \
             --schema-only \
             --no-owner \
@@ -46,15 +43,15 @@ jobs:
           echo "=== Schema dump size ==="
           du -sh "schema_${TIMESTAMP}.sql"
 
-      # ── 2. DATI completi (DML) via pg_dump ──────────────────────────────
+      # ── 2. DATI completi (DML) ───────────────────────────────────────────
       - name: Dump dati (public + auth — tutti i record)
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           pg_dump \
-            --host=aws-0-eu-west-1.pooler.supabase.com \
+            --host=db.${PROJECT_REF}.supabase.co \
             --port=5432 \
-            --username=postgres.${PROJECT_REF} \
+            --username=postgres \
             --dbname=postgres \
             --data-only \
             --no-owner \
@@ -66,23 +63,20 @@ jobs:
           echo "=== Data dump size ==="
           du -sh "data_${TIMESTAMP}.sql"
 
-          echo "=== Righe per tabella (anteprima) ==="
-          grep -c "^INSERT" "data_${TIMESTAMP}.sql" || echo "0 INSERT statements"
+          echo "=== Righe dumpate (INSERT statements) ==="
+          grep -c "^INSERT" "data_${TIMESTAMP}.sql" || echo "0"
 
       # ── 3. Compressione & upload ─────────────────────────────────────────
       - name: Comprimi i dump
         run: |
           DATE=$(date +%Y%m%d)
           zip "db_backup_${DATE}.zip" schema_*.sql data_*.sql
-          
-          echo "=== Backup finale ==="
-          du -sh "db_backup_${DATE}.zip"
+          echo "=== Backup finale ===" && du -sh "db_backup_${DATE}.zip"
 
       - name: Upload artifact su GitHub
         uses: actions/upload-artifact@v4
         with:
           name: db-backup-${{ github.run_id }}
           path: db_backup_*.zip
-          # 90 giorni (max piano Free GitHub)
           retention-days: 90
           if-no-files-found: error
