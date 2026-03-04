@@ -26,7 +26,8 @@ export function useBoardPosts(clientId?: string) {
             if (profile?.role === 'coach') {
                 query = query.eq('coach_id', user.id);
             } else if (profile?.role === 'client') {
-                query = query.filter('target_client_ids', 'cs', `{${user.id}}`);
+                // Show broadcast posts (null or empty target_client_ids) OR posts explicitly targeting this client
+                query = query.or(`target_client_ids.is.null,target_client_ids.eq.{},target_client_ids.cs.{${user.id}}`);
             }
 
             const { data, error } = await query;

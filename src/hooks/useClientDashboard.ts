@@ -7,7 +7,7 @@ import type { Assignment, BoardPost, ClientInfo } from '@/types/database';
 
 export function useClientDashboard() {
     const { profile } = useAuth();
-    const { plans, selectedPlanId, setSelectedPlanId } = useCoachSelection();
+    const { plans, selectedPlanId, setSelectedPlanId, loadingPlans } = useCoachSelection();
     const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [boardPosts, setBoardPosts] = useState<BoardPost[]>([]);
     const [clientInfo, setClientInfo] = useState<ClientInfo | null>(null);
@@ -17,12 +17,12 @@ export function useClientDashboard() {
     const { isCompletedToday, toggleCompletion, fetchCompletions, getTodayStr } = useDailyCompletions();
 
     useEffect(() => {
-        if (profile?.role === 'client') {
+        if (profile?.role === 'client' && !loadingPlans) {
             fetchDashboardData();
-        } else if (profile) {
+        } else if (profile && !loadingPlans) {
             setLoading(false);
         }
-    }, [profile]);
+    }, [profile, plans, loadingPlans]);
 
     async function fetchDashboardData() {
         setLoading(true);
