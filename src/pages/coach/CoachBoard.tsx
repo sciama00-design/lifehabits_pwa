@@ -3,7 +3,7 @@ import { useBoardPosts } from '@/hooks/useBoardPosts';
 import { useClients } from '@/hooks/useClients';
 import { Plus, Trash2, Clock, Users, Check, ChevronDown, X, Upload, Pencil, Bell, MessageSquarePlus } from 'lucide-react';
 import { format, addDays } from 'date-fns';
-import { uploadFile, deleteFileFromUrl } from '@/lib/storage';
+import { uploadFile } from '@/lib/storage';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -154,10 +154,6 @@ export default function CoachBoard() {
     const handleDelete = async (post: any) => {
         if (confirm('Eliminare questo post?')) {
             try {
-                // Delete media from storage if exists
-                if (post.image_url) {
-                    await deleteFileFromUrl(post.image_url);
-                }
                 const success = await deletePost(post.id);
                 if (!success) {
                     alert('Errore durante l\'eliminazione del post.');

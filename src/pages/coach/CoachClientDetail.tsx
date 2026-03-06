@@ -412,7 +412,11 @@ export default function CoachClientDetail() {
                                                 </div>
                                             </div>
                                             <button
-                                                onClick={() => deletePost(post.id)}
+                                                onClick={() => {
+                                                    if (confirm('Sei sicuro di voler rimuovere questo post per questo cliente?')) {
+                                                        deletePost(post.id, clientId);
+                                                    }
+                                                }}
                                                 className="h-9 w-9 flex items-center justify-center rounded-xl bg-destructive/10 text-destructive/50 hover:text-destructive"
                                             >
                                                 <Trash2 className="h-4 w-4" />

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { BoardPost } from '@/types/database';
 import { useAuth } from './useAuth';
+import { deleteFileFromUrl } from '@/lib/storage';
 
 export function useBoardPosts(clientId?: string) {
     const { user, profile } = useAuth();
@@ -64,7 +65,7 @@ export function useBoardPosts(clientId?: string) {
                 .single();
 
             if (error) throw error;
-            setPosts(prev => [data, ...prev]);
+            setPosts((prev: BoardPost[]) => [data, ...prev]);
 
             // Trigger Push Notification
             supabase.functions.invoke('push-dispatcher', {
@@ -101,7 +102,7 @@ export function useBoardPosts(clientId?: string) {
                 throw new Error('Post non trovato o non autorizzato.');
             }
 
-            setPosts(prev => prev.map(p => p.id === id ? data[0] : p));
+            setPosts((prev: BoardPost[]) => prev.map((p: BoardPost) => p.id === id ? data[0] : p));
             return data[0];
         } catch (err: any) {
             setError(err.message);
@@ -109,15 +110,38 @@ export function useBoardPosts(clientId?: string) {
         }
     };
 
-    const deletePost = async (id: string) => {
+    const deletePost = async (id: string, clientToRemoveId?: string) => {
         try {
+            const postToDelete = posts.find(p => p.id === id);
+            if (!postToDelete) throw new Error('Post non trovato.');
+
+            // If we have multiple targets and were asked to remove only one
+            if (clientToRemoveId && postToDelete.target_client_ids && postToDelete.target_client_ids.length > 1) {
+                const newTargets = postToDelete.target_client_ids.filter((cid: string) => cid !== clientToRemoveId);
+                const { error } = await supabase
+                    .from('board_posts')
+                    .update({ target_client_ids: newTargets })
+                    .eq('id', id);
+
+                if (error) throw error;
+                setPosts((prev: BoardPost[]) => prev.map((p: BoardPost) => p.id === id ? { ...p, target_client_ids: newTargets } : p));
+                return true;
+            }
+
+            // Otherwise, delete the whole post
+            // 1. Delete media from storage if exists
+            if (postToDelete.image_url) {
+                await deleteFileFromUrl(postToDelete.image_url);
+            }
+
+            // 2. Delete from DB
             const { error } = await supabase
                 .from('board_posts')
                 .delete()
                 .eq('id', id);
 
             if (error) throw error;
-            setPosts(prev => prev.filter(p => p.id !== id));
+            setPosts((prev: BoardPost[]) => prev.filter((p: BoardPost) => p.id !== id));
             return true;
         } catch (err: any) {
             setError(err.message);
