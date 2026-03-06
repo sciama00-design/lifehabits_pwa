@@ -25,6 +25,10 @@ export function useBoardPosts(clientId?: string) {
             // Ensure coach sees only their posts, and client sees only targeted posts
             if (profile?.role === 'coach') {
                 query = query.eq('coach_id', user.id);
+                if (clientId) {
+                    // Filter by posts targeted at this client OR broadcast posts (null or empty target_client_ids)
+                    query = query.or(`target_client_ids.is.null,target_client_ids.eq.{},target_client_ids.cs.{${clientId}}`);
+                }
             } else if (profile?.role === 'client') {
                 // Show broadcast posts (null or empty target_client_ids) OR posts explicitly targeting this client
                 query = query.or(`target_client_ids.is.null,target_client_ids.eq.{},target_client_ids.cs.{${user.id}}`);
