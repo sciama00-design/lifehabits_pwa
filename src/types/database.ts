@@ -94,3 +94,11 @@ export interface CoachNotification {
     created_at: string;
     client?: Profile; // Hydrated client info
 }
+
+export interface DailyCompletion {
+    id: string;
+    client_id: string;
+    assignment_id: string;
+    completed_date: string; // YYYY-MM-DD
+    created_at: string;
+}

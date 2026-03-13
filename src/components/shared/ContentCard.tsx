@@ -26,6 +26,7 @@ export interface ContentCardProps {
     onDelete?: (id: string) => void;
     onAssign?: (id: string) => void;
     isCoachView?: boolean;
+    isCompleted?: boolean;
 }
 
 export function ContentCard({
@@ -33,7 +34,8 @@ export function ContentCard({
     onEdit,
     onDelete,
     onAssign,
-    isCoachView = true
+    isCoachView = true,
+    isCompleted = false
 }: ContentCardProps) {
     const [viewerOpen, setViewerOpen] = useState(false);
     const [imageError, setImageError] = useState(false);
@@ -203,6 +205,12 @@ export function ContentCard({
                                 )}>
                                     {item.type === 'video' ? 'Video' : item.type === 'post' ? 'Post' : 'Abitudine'}
                                 </span>
+                                {isCompleted && (
+                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tight bg-green-500/10 text-green-400 border border-green-500/10 flex items-center gap-1">
+                                        <CheckSquare className="h-2.5 w-2.5 fill-current" />
+                                        Completato
+                                    </span>
+                                )}
                             </div>
                             <h3
                                 className="text-base font-bold text-foreground transition-colors cursor-pointer group-hover:text-primary leading-tight line-clamp-2"

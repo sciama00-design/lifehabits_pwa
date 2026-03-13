@@ -14,12 +14,6 @@ export function useClientDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Helper to get today string
-    const getTodayStr = () => {
-        const now = new Date();
-        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    };
-
     useEffect(() => {
         if (profile?.role === 'client' && !loadingPlans) {
             fetchDashboardData();
