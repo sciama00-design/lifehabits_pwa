@@ -24,6 +24,14 @@ const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+}
+
+function createResponse(data: any, status = 200) {
+    return new Response(JSON.stringify(data), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
 }
 
 Deno.serve(async (req) => {
@@ -48,16 +56,16 @@ Deno.serve(async (req) => {
         if (timeOverride) {
             checkTimes.push(timeOverride)
         } else {
-            // Check current minute and previous 5 minutes to catch delayed cron executions
-            for (let i = 0; i < 6; i++) {
+            // Check last 30 minutes to be safe with a 15-min cron
+            for (let i = 0; i < 31; i++) {
                 const pastTime = new Date(now.getTime() - i * 60000)
                 checkTimes.push(formatTime(pastTime))
             }
         }
 
-        console.log(`Processing notifications for times: ${checkTimes.join(', ')}`)
+        console.log(`Processing notifications for window: ${checkTimes[checkTimes.length-1]} to ${checkTimes[0]}`)
 
-        // 1. Fetch Rules matching time
+        // 1. Fetch Rules matching any time in the window
         const { data: rules, error: rulesError } = await supabase
             .from('notification_rules')
             .select('id, coach_id, client_id, message, scheduled_time')
@@ -65,18 +73,37 @@ Deno.serve(async (req) => {
 
         if (rulesError) throw rulesError
         if (!rules || rules.length === 0) {
-            return new Response(JSON.stringify({ message: 'No rules for this time', timesChecked: checkTimes }), {
+            return new Response(JSON.stringify({ message: 'No rules in this window', window: checkTimes.length }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
 
-        console.log(`Found ${rules.length} rules matching time.`)
+        // 2. Filter out already sent rules TODAY
+        const todayStr = now.toISOString().split('T')[0]
+        const ruleIds = rules.map(r => r.id)
+        
+        const { data: sentLogs } = await supabase
+            .from('notification_sent_log')
+            .select('rule_id')
+            .in('rule_id', ruleIds)
+            .eq('sent_date', todayStr)
+
+        const sentRuleIds = new Set(sentLogs?.map(l => l.rule_id) || [])
+        const rulesToSend = rules.filter(r => !sentRuleIds.has(r.id))
+
+        if (rulesToSend.length === 0) {
+            return new Response(JSON.stringify({ message: 'All rules in window already sent today' }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            })
+        }
+
+        console.log(`Found ${rulesToSend.length} rules to send (out of ${rules.length} total in window).`)
 
         let notificationsSent = 0
         let failures = 0
 
-        // Process each rule
-        for (const rule of rules) {
+        // 3. Process each rule
+        for (const rule of rulesToSend) {
             let targetUserIds: string[] = []
 
             // If Personal Rule
@@ -84,13 +111,11 @@ Deno.serve(async (req) => {
                 targetUserIds = [rule.client_id]
             } else {
                 // If Global Rule: Find all clients of this coach
-                // Check `clients_info` (clients where this coach is primary)
                 const { data: directClients } = await supabase
                     .from('clients_info')
                     .select('id')
                     .eq('coach_id', rule.coach_id)
 
-                // Check `client_coaches` (clients linked to this coach)
                 const { data: linkedClients } = await supabase
                     .from('client_coaches')
                     .select('client_id')
@@ -98,15 +123,12 @@ Deno.serve(async (req) => {
 
                 const directIds = directClients?.map(c => c.id) || []
                 const linkedIds = linkedClients?.map(c => c.client_id) || []
-
-                // Merge and unique
                 targetUserIds = [...new Set([...directIds, ...linkedIds])]
             }
 
             if (targetUserIds.length === 0) continue
 
             // Filter targets who have notifications enabled
-            // We check `alert_settings`
             const { data: enabledSettings } = await supabase
                 .from('alert_settings')
                 .select('user_id')
@@ -114,7 +136,6 @@ Deno.serve(async (req) => {
                 .eq('is_enabled', true)
 
             const finalTargetIds = enabledSettings?.map(s => s.user_id) || []
-
             if (finalTargetIds.length === 0) continue
 
             // Fetch Subscriptions for these users
@@ -127,10 +148,8 @@ Deno.serve(async (req) => {
 
             // Send Notifications
             const payload = JSON.stringify({
-                title: 'LifeHabits', // Or customized
+                title: 'LifeHabits',
                 body: rule.message,
-                // icon: '/icon.png', // Optional, hard to set relative path in PWA sometimes
-                // data: { url: '/client/dashboard' } // Optional deep link
             })
 
             const promises = subscriptions.map(async (sub) => {
@@ -142,40 +161,38 @@ Deno.serve(async (req) => {
                     return { success: true }
                 } catch (err: any) {
                     if (err.statusCode === 410 || err.statusCode === 404) {
-                        // Subscription is gone, delete it
                         await supabase
                             .from('push_subscriptions')
                             .delete()
                             .eq('user_id', sub.user_id)
-                        // We'd need ID to be precise, but user_id + scan might be okay if we had ID in select.
-                        // Better: select ID too.
-                        // For now, assume user_id match is okayish or skip deletion to be safe/lazy.
-                        // Let's improve:
-                        console.log(`Subscription gone for user ${sub.user_id}`)
                     }
                     return { success: false, error: err }
                 }
             })
 
             const results = await Promise.all(promises)
-            notificationsSent += results.filter(r => r.success).length
+            const sentCount = results.filter(r => r.success).length
+            notificationsSent += sentCount
             failures += results.filter(r => !r.success).length
+
+            // 4. Log as sent for today (even if some devices failed, we consider the rule "processed")
+            await supabase
+                .from('notification_sent_log')
+                .insert({
+                    rule_id: rule.id,
+                    sent_date: todayStr
+                })
         }
 
-        return new Response(
-            JSON.stringify({
-                message: 'Notifications processed',
-                timesChecked: checkTimes,
-                sent: notificationsSent,
-                failed: failures
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return createResponse({
+            message: 'Notifications processed',
+            timesChecked: checkTimes,
+            sent: notificationsSent,
+            failed: failures
+        })
 
     } catch (err: any) {
-        return new Response(JSON.stringify({ error: err.message }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+        console.error('Push Scheduler Error:', err)
+        return createResponse({ error: err.message }, 500)
     }
 })

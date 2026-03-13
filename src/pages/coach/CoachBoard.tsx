@@ -165,6 +165,8 @@ export default function CoachBoard() {
         }
     };
 
+    const filteredPosts = posts.filter((post) => (post.target_client_ids?.length || clients.length) > 1);
+
     return (
         <div className="space-y-4">
             {/* ─── CTA Toggle ──────────────────────────────────── */}
@@ -410,7 +412,7 @@ export default function CoachBoard() {
                         <div key={i} className="min-w-[220px] max-w-[220px] h-48 rounded-[var(--radius-xl)] bg-muted/30 border border-border animate-pulse snap-center" />
                     ))}
                 </div>
-            ) : posts.length === 0 ? (
+            ) : filteredPosts.length === 0 ? (
                 <div className="text-center py-10 rounded-[var(--radius-xl)] bg-muted/10 border border-dashed border-border flex flex-col items-center gap-3">
                     <div className="h-12 w-12 rounded-2xl bg-muted/20 flex items-center justify-center text-muted-foreground">
                         <Clock className="h-6 w-6" />
@@ -419,7 +421,7 @@ export default function CoachBoard() {
                 </div>
             ) : (
                 <div className="flex gap-3 overflow-x-auto pb-4 snap-x no-scrollbar">
-                    {posts.map((post) => (
+                    {filteredPosts.map((post) => (
                         <motion.div
                             key={post.id}
                             initial={{ opacity: 0, scale: 0.95 }}

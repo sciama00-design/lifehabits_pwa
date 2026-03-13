@@ -65,7 +65,7 @@ export default function CoachClientDetail() {
     const { clients } = useClients();
     const { assignments, addAssignment, deleteAssignment, updateAssignment, refresh: refreshAssignments } = useAssignments(clientId || '', selectedPlanId);
     const { content: libraryContent } = useContentLibrary();
-    const { posts, createPost, deletePost, refresh: refreshPosts } = useBoardPosts(clientId);
+    const { posts, createPost, updatePost, deletePost, refresh: refreshPosts } = useBoardPosts(clientId);
     const {
         plans,
         createPlan,
@@ -89,6 +89,7 @@ export default function CoachClientDetail() {
     const [editingPlan, setEditingPlan] = useState<any>(null);
     const [editingAssignment, setEditingAssignment] = useState<any>(null);
     const [selectedLibraryItem, setSelectedLibraryItem] = useState<ContentItem | null>(null);
+    const [editingPost, setEditingPost] = useState<any>(null);
     const [viewMode, setViewMode] = useState<'create' | 'library'>('create');
     const [planEndMode, setPlanEndMode] = useState<'date' | 'duration'>('date');
     const [durationAmount, setDurationAmount] = useState<number>(4);
@@ -162,13 +163,22 @@ export default function CoachClientDetail() {
     };
 
     const handleCreatePost = async (data: ContentData) => {
-        await createPost({
-            title: data.title,
-            content: data.description,
-            image_url: data.thumbnail_url || data.link || null,
-            target_client_ids: [clientId],
-        });
+        if (editingPost) {
+            await updatePost(editingPost.id, {
+                title: data.title,
+                content: data.description,
+                image_url: data.thumbnail_url || data.link || null,
+            });
+        } else {
+            await createPost({
+                title: data.title,
+                content: data.description,
+                image_url: data.thumbnail_url || data.link || null,
+                target_client_ids: [clientId],
+            });
+        }
         setIsPostModalOpen(false);
+        setEditingPost(null);
         refreshPosts();
     };
 
@@ -411,16 +421,27 @@ export default function CoachClientDetail() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('Sei sicuro di voler rimuovere questo post per questo cliente?')) {
-                                                        deletePost(post.id, clientId);
-                                                    }
-                                                }}
-                                                className="h-9 w-9 flex items-center justify-center rounded-xl bg-destructive/10 text-destructive/50 hover:text-destructive"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingPost(post);
+                                                        setIsPostModalOpen(true);
+                                                    }}
+                                                    className="h-9 w-9 flex items-center justify-center rounded-xl bg-muted/50 text-muted-foreground hover:text-primary transition-colors"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm('Sei sicuro di voler rimuovere questo post per questo cliente?')) {
+                                                            deletePost(post.id, clientId);
+                                                        }
+                                                    }}
+                                                    className="h-9 w-9 flex items-center justify-center rounded-xl bg-destructive/10 text-destructive/50 hover:text-destructive"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="p-5 space-y-4">
                                             <div className="text-foreground/80 text-sm font-medium leading-relaxed">
@@ -588,6 +609,7 @@ export default function CoachClientDetail() {
                                 setViewMode('create');
                                 setSelectedLibraryItem(null);
                                 setEditingAssignment(null);
+                                setEditingPost(null);
                                 setIsAssignmentModalOpen(true);
                             }
                         }}
@@ -824,10 +846,18 @@ export default function CoachClientDetail() {
                             <div className="p-6 md:p-8 overflow-y-auto">
                                 <ContentEditorCard
                                     onSave={handleCreatePost}
-                                    onCancel={() => setIsPostModalOpen(false)}
-                                    saveLabel="Pubblica"
+                                    onCancel={() => {
+                                        setIsPostModalOpen(false);
+                                        setEditingPost(null);
+                                    }}
+                                    saveLabel={editingPost ? 'Salva' : 'Pubblica'}
                                     showTitle={true}
-                                    initialData={{ type: 'post' }}
+                                    initialData={{
+                                        type: 'post',
+                                        title: editingPost?.title || '',
+                                        description: editingPost?.content || '',
+                                        thumbnail_url: editingPost?.image_url || ''
+                                    }}
                                 />
                             </div>
                         </div>

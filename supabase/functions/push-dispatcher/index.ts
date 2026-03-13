@@ -20,197 +20,75 @@ if (vapidPublicKey && vapidPrivateKey) {
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+}
+
+function createResponse(data: any, status = 200) {
+    return new Response(JSON.stringify(data), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
 }
 
 Deno.serve(async (req) => {
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
-    }
-
+    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
     try {
         const supabase = createClient(supabaseUrl, supabaseServiceKey)
-        const { type, user_id, title, body, url, coach_id, target_client_ids } = await req.json()
+        const bodyContent = await req.json().catch(() => ({}))
+        const { type, user_id, title, body, url, coach_id, target_client_ids, simulated_time } = bodyContent
 
-        // 1. DIRECT SEND (e.g. Test)
         if (type === 'direct') {
-            if (!user_id || !title || !body) {
-                return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-                    status: 400,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                })
-            }
-
             await sendNotificationToUser(supabase, user_id, { title, body, url })
-
-            return new Response(JSON.stringify({ message: 'Notification sent' }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
+            return createResponse({ message: 'Notification sent' })
         }
 
-        // 2. BROADCAST (to ALL users - Use with caution)
         if (type === 'broadcast') {
-            if (!title || !body) {
-                return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-                    status: 400,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                })
-            }
-
-            const { data: subscriptions, error } = await supabase
-                .from('push_subscriptions')
-                .select('user_id, subscription')
-
+            const { data: subs, error } = await supabase.from('push_subscriptions').select('user_id, subscription')
             if (error) throw error
-
-            await Promise.all(subscriptions.map(sub =>
-                sendPush(sub.subscription, { title, body, url })
-                    .catch(err => {
-                        console.error(`Failed to send to user ${sub.user_id}:`, err)
-                        if (err.statusCode === 410) {
-                            supabase.from('push_subscriptions').delete().eq('user_id', sub.user_id).eq('subscription', sub.subscription)
-                        }
-                    })
-            ))
-
-            return new Response(JSON.stringify({ message: `Broadcast sent to ${subscriptions.length} devices` }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
+            await Promise.all((subs || []).map(sub => sendPush(sub.subscription, { title, body, url }).catch(() => {})))
+            return createResponse({ message: `Broadcast sent to ${subs?.length || 0} devices` })
         }
 
-        // 3. ANNOUNCEMENT (Coach to Clients)
         if (type === 'announcement') {
-            if (!coach_id || !title || !body) {
-                return new Response(JSON.stringify({ error: 'Missing coach_id, title or body' }), {
-                    status: 400,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                })
-            }
-
-            let recipients = []
-
-            // If specific targets provided
-            if (target_client_ids && target_client_ids.length > 0) {
-                recipients = target_client_ids
-            } else {
-                // Fetch all clients of this coach
-                // We can check `client_coaches` table or `clients_info` depending on logic.
-                // Let's use `clients_info` as primary source of truth for "active client under coach".
-                // Or better, `client_coaches` implies relationship.
-                // We'll stick to `clients_info` as per schema analysis for "primary coach" logic if applicable, 
-                // but `client_coaches` is safer for many-to-many.
-                // Let's use `client_coaches`.
-
-                const { data: clients, error: clientsError } = await supabase
-                    .from('client_coaches')
-                    .select('client_id')
-                    .eq('coach_id', coach_id)
-
-                if (clientsError) throw clientsError
-                recipients = clients.map(c => c.client_id)
-            }
-
+            if (!coach_id) return createResponse({ error: 'Missing coach_id' }, 400)
+            let recipients = target_client_ids && target_client_ids.length > 0 ? target_client_ids : []
             if (recipients.length === 0) {
-                return new Response(JSON.stringify({ message: 'No recipients found' }), {
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                })
+                const { data: clients } = await supabase.from('client_coaches').select('client_id').eq('coach_id', coach_id)
+                recipients = clients?.map(c => c.client_id) || []
             }
-
-            // Fetch subscriptions for these users
-            const { data: subscriptions, error: subError } = await supabase
-                .from('push_subscriptions')
-                .select('user_id, subscription')
-                .in('user_id', recipients)
-
-            if (subError) throw subError
-
-            if (!subscriptions || subscriptions.length === 0) {
-                return new Response(JSON.stringify({ message: 'No subscriptions found for recipients' }), {
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                })
-            }
-
-            await Promise.all(subscriptions.map(sub =>
-                sendPush(sub.subscription, { title, body, url })
-                    .catch(err => {
-                        console.error(`Failed to send to user ${sub.user_id}:`, err)
-                        if (err.statusCode === 410) {
-                            supabase.from('push_subscriptions').delete().eq('user_id', sub.user_id).eq('subscription', sub.subscription)
-                        }
-                    })
-            ))
-
-            return new Response(JSON.stringify({ message: `Announcement sent to ${subscriptions.length} devices` }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
+            if (recipients.length === 0) return createResponse({ message: 'No recipients found' })
+            const { data: subs } = await supabase.from('push_subscriptions').select('user_id, subscription').in('user_id', recipients)
+            await Promise.all((subs || []).map(sub => sendPush(sub.subscription, { title, body, url }).catch(() => {})))
+            return createResponse({ message: `Announcement sent to ${subs?.length || 0} devices` })
         }
 
-        // 4. CRON JOB (Daily Reminders)
         if (type === 'cron') {
             const now = new Date()
-            const { simulated_time } = await req.json().catch(() => ({}))
-            
-            // Format HH:MM
-            const formatTime = (d: Date) => d.toLocaleTimeString('en-US', { 
-                hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Rome' 
-            }).slice(0, 5)
+            const timeStr = simulated_time || now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Rome' }).slice(0, 5)
+            const hour = timeStr.split(':')[0]
+            const today = now.toISOString().split('T')[0]
 
-            const now = new Date()
-            const timeToCheck = simulated_time || formatTime(now)
-            const hourToCheck = timeToCheck.split(':')[0] // "09"
+            const { data: settings } = await supabase.from('alert_settings').select('*').eq('is_enabled', true)
+            let sent = 0
+            for (const s of (settings || [])) {
+                const slots = s.alert_times?.filter((t: string) => t.startsWith(hour)) || []
+                for (const slot of slots) {
+                    const { data: exists } = await supabase.from('daily_alert_sent_log').select('sent_at').eq('user_id', s.user_id).eq('alert_time', slot).eq('sent_date', today).maybeSingle()
+                    if (exists) continue
 
-            // Provide a small tolerance for the edge of the hour (e.g. cron runs at 10:00 to cover 09:55-09:59)
-            const previousHour = new Date(now.getTime() - 5 * 60000).toLocaleTimeString('en-US', {
-                hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Rome'
-            }).slice(0, 5).split(':')[0];
-
-            console.log(`Running Cron for time: ${timeToCheck} (Hours to check: ${hourToCheck}, ${previousHour})`)
-
-            const { data: allSettings, error } = await supabase
-                .from('alert_settings')
-                .select('*')
-                .eq('is_enabled', true)
-
-            if (error) throw error
-
-            const notificationsToSend = []
-
-            for (const setting of allSettings) {
-                if (!setting.alert_times) continue
-
-                // Check if any alert time matches current hour or the hour 5 minutes ago
-                const hasMatch = setting.alert_times.some((t: string) => 
-                    t.startsWith(hourToCheck) || t.startsWith(previousHour)
-                )
-
-                if (hasMatch) {
-                    notificationsToSend.push(
-                        sendNotificationToUser(supabase, setting.user_id, {
-                            title: "È ora della tua attività! 💪",
-                            body: "Ricordati di completare le tue abitudini oggi.",
-                            url: "/dashboard"
-                        })
-                    )
+                    await sendNotificationToUser(supabase, s.user_id, { title: "È ora della tua attività! 💪", body: "Ricordati di completare le tue abitudini oggi.", url: "/dashboard" })
+                    await supabase.from('daily_alert_sent_log').insert({ user_id: s.user_id, alert_time: slot, sent_date: today })
+                    sent++
                 }
             }
-
-            await Promise.all(notificationsToSend)
-
-            return new Response(JSON.stringify({ message: `Cron processed. Sent ${notificationsToSend.length} notifications.` }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
+            return createResponse({ sent })
         }
 
-        return new Response(JSON.stringify({ error: 'Invalid type' }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+        return createResponse({ error: 'Invalid type' }, 400)
 
-    } catch (error) {
-        console.error(error)
-        return new Response(JSON.stringify({ error: error.message }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+    } catch (error: any) {
+        console.error('Push Dispatcher Error:', error)
+        return createResponse({ error: error.message }, 500)
     }
 })
 
