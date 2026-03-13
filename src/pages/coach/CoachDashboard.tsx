@@ -5,6 +5,7 @@ import CoachBoard from './CoachBoard';
 import { Users, AlertTriangle, Sparkles, Bell, TrendingUp, UserX } from 'lucide-react';
 import { addDays, isAfter, isBefore, format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { useCoachNotifications } from '@/hooks/useCoachNotifications';
 import { GlobalNotificationsManager } from '@/components/coach/GlobalNotificationsManager';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -26,40 +27,46 @@ function getGreeting(fullName?: string | null): string {
 export default function CoachDashboard() {
     const { profile } = useAuth();
     const { clients, loading: clientsLoading } = useClients();
+    const { unreadCount } = useCoachNotifications();
     const today = new Date();
 
     const greeting = getGreeting(profile?.full_name);
     const firstName = profile?.full_name?.split(' ')[0] || '';
 
     // ─── Extra Stats ──────────────────────────────────────
-    const [completionRate, setCompletionRate] = useState<{ completed: number; total: number } | null>(null);
+    const [feedbackStats, setFeedbackStats] = useState<{ received: number; total: number } | null>(null);
 
     useEffect(() => {
         if (!profile?.id) return;
 
-        // Today's completion rate across all clients
-        const todayStr = format(today, 'yyyy-MM-dd');
-        supabase
-            .from('assignments')
-            .select('id')
-            .eq('coach_id', profile.id)
-            .eq('scheduled_date', todayStr)
-            .then(async ({ data: todayAssignments }) => {
-                if (!todayAssignments) return;
-                const total = todayAssignments.length;
-                if (total === 0) {
-                    setCompletionRate({ completed: 0, total: 0 });
-                    return;
-                }
-                const assignmentIds = todayAssignments.map(a => a.id);
-                const { count } = await supabase
-                    .from('daily_completions')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('completed_date', todayStr)
-                    .in('assignment_id', assignmentIds);
-
-                setCompletionRate({ completed: count || 0, total });
-            });
+        const fetchStats = async () => {
+            const todayStr = format(today, 'yyyy-MM-dd');
+            
+            // First get all clients of this coach
+            const { data: clientRels } = await supabase
+                .from('client_coaches')
+                .select('client_id')
+                .eq('coach_id', profile.id);
+                
+            if (!clientRels || clientRels.length === 0) {
+                setFeedbackStats({ received: 0, total: 0 });
+                return;
+            }
+            
+            const clientIds = clientRels.map(r => r.client_id);
+            const total = clientIds.length;
+            
+            // Count feedbacks from these clients today
+            const { count } = await supabase
+                .from('daily_feedbacks')
+                .select('*', { count: 'exact', head: true })
+                .eq('date', todayStr)
+                .in('client_id', clientIds);
+                
+            setFeedbackStats({ received: count || 0, total });
+        };
+        
+        fetchStats();
     }, [profile?.id]);
 
     // Calculate Statistics
@@ -77,8 +84,8 @@ export default function CoachDashboard() {
 
     const inactiveClientsCount = clients.length - activeClientsCount;
 
-    const ratePercent = completionRate && completionRate.total > 0
-        ? Math.round((completionRate.completed / completionRate.total) * 100)
+    const ratePercent = feedbackStats && feedbackStats.total > 0
+        ? Math.round((feedbackStats.received / feedbackStats.total) * 100)
         : null;
 
     return (
@@ -152,18 +159,40 @@ export default function CoachDashboard() {
                     subtitle={inactiveClientsCount === 1 ? 'senza piano' : 'senza piano'}
                 />
 
-                {/* Today's Completion Rate */}
+                {/* Today's Feedbacks */}
                 <StatCard
                     delay={0.25}
                     gradientFrom="#0891b2" gradientTo="#22d3ee"
                     borderColor="rgba(34,211,238,0.3)"
                     icon={<TrendingUp className="h-4 w-4 text-white" />}
                     bgIcon={<TrendingUp className="h-12 w-12 text-white" />}
-                    label="Completamento Oggi"
-                    value={ratePercent !== null ? `${ratePercent}%` : (completionRate?.total === 0 ? '—' : '-')}
-                    subtitle={completionRate ? `${completionRate.completed}/${completionRate.total} attività` : ''}
+                    label="Feedback Ricevuti"
+                    value={ratePercent !== null ? `${ratePercent}%` : (feedbackStats?.total === 0 ? '—' : '-')}
+                    subtitle={feedbackStats ? `${feedbackStats.received}/${feedbackStats.total} clienti` : ''}
                 />
             </section>
+
+            {/* ─── Unread Notifications Alert ───────────────────────────── */}
+            {unreadCount > 0 && (
+                <section>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500">
+                                <Bell className="h-5 w-5" />
+                                <span className="absolute top-3 right-3 h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-foreground">Hai {unreadCount} {unreadCount === 1 ? 'nuova notifica' : 'nuove notifiche'}</h3>
+                                <p className="text-xs text-muted-foreground font-medium">Controlla la campanella per leggerle.</p>
+                            </div>
+                        </div>
+                    </motion.div>
+                </section>
+            )}
 
             {/* ─── Board / Announcements Section ───────────────────── */}
             <section className="space-y-3">

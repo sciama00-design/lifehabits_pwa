@@ -8,8 +8,11 @@ import { ContentCard } from '@/components/shared/ContentCard';
 import { TextPostModal } from '@/components/shared/TextPostModal';
 import { HabitCalendar } from '@/components/shared/HabitCalendar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { BoardPost } from '@/types/database';
+import { useDailyFeedbacks } from '@/hooks/useDailyFeedbacks';
+import { MessageSquare, CheckCircle2 } from 'lucide-react';
+import { EmojiTextarea } from '@/components/shared/EmojiTextarea';
 
 // ─── Gradient Block Component ────────────────────────────────────────
 interface GradientBlockProps {
@@ -61,12 +64,43 @@ export default function ClientDashboard() {
         boardPosts,
         loading,
         error,
-        toggleAssignment,
-        isCompletedToday,
         stats
     } = useClientDashboard();
 
     const { profile } = useAuth();
+    const { submitFeedback, getFeedbackForDate, getTodayStr, fetchFeedbacks } = useDailyFeedbacks();
+    
+    // Daily feedback form state
+    const [feedbackOpen, setFeedbackOpen] = useState(false);
+    const [feeling, setFeeling] = useState('');
+    const [exercisesDone, setExercisesDone] = useState<boolean | null>(null);
+    const [activitiesSummary, setActivitiesSummary] = useState('');
+    const [submittingFeedback, setSubmittingFeedback] = useState(false);
+    const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+
+    useEffect(() => {
+        if (profile?.id) {
+            fetchFeedbacks(profile.id, getTodayStr(), getTodayStr());
+        }
+    }, [profile?.id]);
+
+    const todayFeedback = getFeedbackForDate(getTodayStr());
+    const hasFeedbackToday = !!todayFeedback || feedbackSuccess;
+
+    const handleFeedbackSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!feeling.trim() || exercisesDone === null) return;
+        
+        setSubmittingFeedback(true);
+        const success = await submitFeedback(feeling, exercisesDone, activitiesSummary);
+        setSubmittingFeedback(false);
+        
+        if (success) {
+            setFeedbackSuccess(true);
+            setTimeout(() => setFeedbackOpen(false), 2000);
+        }
+    };
+
     const [selectedPost, setSelectedPost] = useState<BoardPost | null>(null);
     const [calendarOpen, setCalendarOpen] = useState(false);
     const today = new Date();
@@ -178,7 +212,107 @@ export default function ClientDashboard() {
                 </section>
             )}
 
-            {/* ─── Gradient Blocks Grid ───────────────────────────── */}
+            {/* ─── Daily Feedback Block ───────────────────────────── */}
+            <section className="space-y-3 mt-4">
+                <GradientBlock
+                    gradientFrom="#f43f5e"
+                    gradientTo="#e11d48"
+                    borderColor="rgba(244,63,94,0.3)"
+                    icon={<MessageSquare className="h-4 w-4 text-white" />}
+                    bgIcon={<MessageSquare className="h-12 w-12 text-white" />}
+                    onClick={() => {
+                        if (!hasFeedbackToday) {
+                            setFeedbackOpen(!feedbackOpen);
+                        }
+                    }}
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-1">
+                                Check-in Giornaliero
+                            </p>
+                            <h3 className="text-sm font-bold text-white leading-snug">
+                                {hasFeedbackToday ? 'Completato per oggi! 🎉' : 'Raccontaci la tua giornata'}
+                            </h3>
+                            <p className="text-[10px] text-white/50 mt-1 flex items-center gap-1">
+                                {hasFeedbackToday ? 'Ci risentiamo domani' : (feedbackOpen ? 'Tocca per chiudere' : 'Tocca per aprire')}
+                                {!hasFeedbackToday && <ChevronRight className={`h-3 w-3 transition-transform ${feedbackOpen ? 'rotate-90' : ''}`} />}
+                            </p>
+                        </div>
+                        {hasFeedbackToday && (
+                            <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+                                <CheckCircle2 className="h-6 w-6 text-white" />
+                            </div>
+                        )}
+                    </div>
+                </GradientBlock>
+
+                <AnimatePresence>
+                    {feedbackOpen && !hasFeedbackToday && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            <div className="glass-card p-5 border-border rounded-[var(--radius-xl)]">
+                                <form onSubmit={handleFeedbackSubmit} className="space-y-5">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-foreground">1. Come ti senti oggi?</label>
+                                        <EmojiTextarea 
+                                            value={feeling} 
+                                            onChange={setFeeling} 
+                                            placeholder="Descrivi le tue sensazioni..." 
+                                            className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-rose-500/10 outline-none resize-none min-h-[80px]"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-foreground">2. Hai fatto gli esercizi?</label>
+                                        <div className="flex gap-3">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setExercisesDone(true)}
+                                                className={`flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition-all ${exercisesDone === true ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-foreground/80 border-border hover:border-primary/50'}`}
+                                            >
+                                                ✅ Sì
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setExercisesDone(false)}
+                                                className={`flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition-all ${exercisesDone === false ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-card text-foreground/80 border-border hover:border-destructive/50'}`}
+                                            >
+                                                ❌ No
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-foreground">3. Come sono andate le attività quotidiane?</label>
+                                        <EmojiTextarea 
+                                            value={activitiesSummary} 
+                                            onChange={setActivitiesSummary} 
+                                            placeholder="Qualche nota sulla tua giornata?" 
+                                            className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-rose-500/10 outline-none resize-none min-h-[80px]"
+                                        />
+                                    </div>
+
+                                    <button 
+                                        type="submit" 
+                                        disabled={submittingFeedback || feeling.trim() === '' || exercisesDone === null}
+                                        className="w-full py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black uppercase tracking-widest text-[11px] rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-rose-500/20"
+                                    >
+                                        {submittingFeedback ? 'Invio in corso...' : 'Invia Feedback'}
+                                    </button>
+                                </form>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </section>
+
             {/* ─── Gradient Blocks Section ────────────────────────── */}
             <section className="space-y-3">
                 <div className="flex items-center gap-2 px-1">
@@ -270,7 +404,7 @@ export default function ClientDashboard() {
                             transition={{ duration: 0.3, ease: 'easeInOut' }}
                             className="overflow-hidden"
                         >
-                            <HabitCalendar assignments={assignments} />
+                            <HabitCalendar />
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -315,8 +449,6 @@ export default function ClientDashboard() {
                                 key={task.id}
                                 item={task as any}
                                 isCoachView={false}
-                                isCompleted={isCompletedToday(task.id)}
-                                onToggleComplete={toggleAssignment}
                             />
                         ))}
                     </div>

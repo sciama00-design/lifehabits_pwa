@@ -11,9 +11,7 @@ export default function ClientHabits() {
         selectedPlanId,
         setSelectedPlanId,
         loading,
-        error,
-        toggleComplete,
-        isCompletedToday
+        error
     } = useClientAssignments('habit');
 
     if (loading) return (
@@ -64,8 +62,6 @@ export default function ClientHabits() {
                                 key={habit.id}
                                 item={habit as any}
                                 isCoachView={false}
-                                isCompleted={isCompletedToday(habit.id)}
-                                onToggleComplete={toggleComplete}
                             />
                         ))}
                     </div>

@@ -35,31 +35,37 @@ Deno.serve(async (req) => {
     try {
         const { timeOverride } = await req.json().catch(() => ({}))
 
-        // Get current time in HH:MM format (Europe/Rome)
-        const now = new Date()
-        // Adjust for timezone manually if needed, or use specific time string
-        // Simplified: For now we assume the schedule time is in UTC or we match exactly.
-        // Ideally, we convert 'now' to 'Europe/Rome' time string.
-
         // Using Intl to get HH:MM in Rome time
-        const timeString = timeOverride || new Intl.DateTimeFormat('it-IT', {
+        const formatTime = (d: Date) => new Intl.DateTimeFormat('it-IT', {
             timeZone: 'Europe/Rome',
             hour: '2-digit',
             minute: '2-digit',
             hourCycle: 'h23'
-        }).format(now)
+        }).format(d)
+        
+        const now = new Date()
+        const checkTimes = []
+        if (timeOverride) {
+            checkTimes.push(timeOverride)
+        } else {
+            // Check current minute and previous 5 minutes to catch delayed cron executions
+            for (let i = 0; i < 6; i++) {
+                const pastTime = new Date(now.getTime() - i * 60000)
+                checkTimes.push(formatTime(pastTime))
+            }
+        }
 
-        console.log(`Processing notifications for time: ${timeString}`)
+        console.log(`Processing notifications for times: ${checkTimes.join(', ')}`)
 
         // 1. Fetch Rules matching time
         const { data: rules, error: rulesError } = await supabase
             .from('notification_rules')
-            .select('id, coach_id, client_id, message')
-            .eq('scheduled_time', timeString)
+            .select('id, coach_id, client_id, message, scheduled_time')
+            .in('scheduled_time', checkTimes)
 
         if (rulesError) throw rulesError
         if (!rules || rules.length === 0) {
-            return new Response(JSON.stringify({ message: 'No rules for this time', time: timeString }), {
+            return new Response(JSON.stringify({ message: 'No rules for this time', timesChecked: checkTimes }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
@@ -159,7 +165,7 @@ Deno.serve(async (req) => {
         return new Response(
             JSON.stringify({
                 message: 'Notifications processed',
-                time: timeString,
+                timesChecked: checkTimes,
                 sent: notificationsSent,
                 failed: failures
             }),

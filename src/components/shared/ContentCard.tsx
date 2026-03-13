@@ -5,9 +5,7 @@ import {
     FileText,
     CheckSquare,
     User,
-    Maximize2,
-    CheckCircle2,
-    Circle
+    Maximize2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
@@ -27,8 +25,6 @@ export interface ContentCardProps {
     onEdit?: (id: string) => void;
     onDelete?: (id: string) => void;
     onAssign?: (id: string) => void;
-    isCompleted?: boolean;
-    onToggleComplete?: (id: string, completed: boolean) => void;
     isCoachView?: boolean;
 }
 
@@ -37,13 +33,10 @@ export function ContentCard({
     onEdit,
     onDelete,
     onAssign,
-    isCompleted,
-    onToggleComplete,
     isCoachView = true
 }: ContentCardProps) {
     const [viewerOpen, setViewerOpen] = useState(false);
     const [imageError, setImageError] = useState(false);
-    const [toggling, setToggling] = useState(false);
 
     const getThumbnailUrl = (link: string | null) => {
         if (!link) return null;
@@ -185,9 +178,7 @@ export function ContentCard({
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 className={clsx(
                     "group relative flex flex-col rounded-2xl bg-card/40 backdrop-blur-xl border transition-all duration-500 overflow-hidden",
-                    !isCoachView && isCompleted
-                        ? "border-primary/30 shadow-[0_0_15px_-3px] shadow-primary/10"
-                        : "border-border",
+                    "border-border",
                     !isCoachView && onAssign && "cursor-pointer active:scale-[0.98]"
                 )}
                 onClick={() => {
@@ -262,34 +253,6 @@ export function ContentCard({
                             </button>
                         )}
 
-                        {/* Daily Check-off Toggle (Client view) */}
-                        {!isCoachView && onToggleComplete && (
-                            <motion.button
-                                whileTap={{ scale: 0.92 }}
-                                onClick={async (e) => {
-                                    e.stopPropagation();
-                                    setToggling(true);
-                                    await onToggleComplete(item.id, !!isCompleted);
-                                    setToggling(false);
-                                }}
-                                disabled={toggling}
-                                className={clsx(
-                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-tight transition-all duration-300 border ml-auto",
-                                    isCompleted
-                                        ? "bg-primary/15 text-primary border-primary/20 hover:bg-primary/25"
-                                        : "bg-muted/30 text-muted-foreground border-border hover:bg-primary/10 hover:text-primary hover:border-primary/20"
-                                )}
-                            >
-                                {toggling ? (
-                                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-                                ) : isCompleted ? (
-                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                ) : (
-                                    <Circle className="h-3.5 w-3.5" />
-                                )}
-                                {isCompleted ? 'Fatto oggi ✓' : 'Segna come fatto'}
-                            </motion.button>
-                        )}
                     </div>
                 </div>
             </motion.div>

@@ -11,8 +11,11 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import clsx from 'clsx';
+import { useCoachNotifications } from '@/hooks/useCoachNotifications';
+import { CoachNotificationsList } from '@/components/coach/CoachNotificationsList';
 
 import { MobileBottomNav } from './MobileBottomNav';
+import { Bell } from 'lucide-react';
 
 export default function CoachLayout() {
     const { profile } = useAuth();
@@ -20,6 +23,9 @@ export default function CoachLayout() {
     const location = useLocation();
     const [isNavVisible, setIsNavVisible] = useState(true);
     const [lastScrollY, setLastScrollY] = useState(0);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useCoachNotifications();
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -72,10 +78,21 @@ export default function CoachLayout() {
         <div className="flex h-screen bg-background text-foreground overflow-hidden premium-gradient-bg">
             {/* Sidebar for Desktop */}
             <aside className="hidden w-64 flex-col border-r border-border bg-card/20 backdrop-blur-2xl md:flex">
-                <div className="flex h-20 items-center px-8">
+                <div className="flex h-20 items-center justify-between px-8">
                     <h1 className="text-xl font-bold tracking-tight">
                         Life<span className="text-primary italic">Habits</span>
                     </h1>
+                    <button 
+                        onClick={() => setIsNotificationsOpen(true)} 
+                        className="relative h-9 w-9 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors border border-border"
+                    >
+                        <Bell className="h-4.5 w-4.5" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-destructive border-2 border-background flex items-center justify-center text-[8px] font-bold text-white">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </button>
                 </div>
 
                 <nav className="flex-1 space-y-1.5 px-6 py-4">
@@ -133,8 +150,21 @@ export default function CoachLayout() {
                             <h1 className="text-lg font-bold tracking-tight">
                                 Life<span className="text-primary italic">Habits</span>
                             </h1>
-                            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/20">
-                                {profile?.full_name?.charAt(0) || 'C'}
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={() => setIsNotificationsOpen(true)} 
+                                    className="relative h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground border border-border"
+                                >
+                                    <Bell className="h-4 w-4" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-destructive border-2 border-background flex items-center justify-center text-[8px] font-bold text-white">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+                                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/20">
+                                    {profile?.full_name?.charAt(0) || 'C'}
+                                </div>
                             </div>
                         </div>
                     </header>
@@ -159,6 +189,15 @@ export default function CoachLayout() {
                 {/* Mobile Bottom Navigation */}
                 <MobileBottomNav items={navItems} isVisible={isNavVisible} />
             </div>
+
+            <CoachNotificationsList
+                isOpen={isNotificationsOpen}
+                onClose={() => setIsNotificationsOpen(false)}
+                notifications={notifications}
+                unreadCount={unreadCount}
+                markAsRead={markAsRead}
+                markAllAsRead={markAllAsRead}
+            />
         </div>
     );
 }

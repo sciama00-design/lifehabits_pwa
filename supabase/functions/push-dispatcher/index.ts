@@ -148,11 +148,22 @@ Deno.serve(async (req) => {
         if (type === 'cron') {
             const now = new Date()
             const { simulated_time } = await req.json().catch(() => ({}))
+            
+            // Format HH:MM
+            const formatTime = (d: Date) => d.toLocaleTimeString('en-US', { 
+                hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Rome' 
+            }).slice(0, 5)
 
-            const timeToCheck = simulated_time || now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Rome' }).slice(0, 5) // "HH:MM"
+            const now = new Date()
+            const timeToCheck = simulated_time || formatTime(now)
             const hourToCheck = timeToCheck.split(':')[0] // "09"
 
-            console.log(`Running Cron for time: ${timeToCheck} (Hour: ${hourToCheck})`)
+            // Provide a small tolerance for the edge of the hour (e.g. cron runs at 10:00 to cover 09:55-09:59)
+            const previousHour = new Date(now.getTime() - 5 * 60000).toLocaleTimeString('en-US', {
+                hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Rome'
+            }).slice(0, 5).split(':')[0];
+
+            console.log(`Running Cron for time: ${timeToCheck} (Hours to check: ${hourToCheck}, ${previousHour})`)
 
             const { data: allSettings, error } = await supabase
                 .from('alert_settings')
@@ -166,13 +177,10 @@ Deno.serve(async (req) => {
             for (const setting of allSettings) {
                 if (!setting.alert_times) continue
 
-                // Check if any alert time matches current hour
-                // We match just the hour part for simplicity as agreed? Or exact match?
-                // "3 volte al giorno... mattina, pome, sera".
-                // If stored as "09:00", "14:00", "20:00".
-                // We can check if "09" matches the start of any alert time.
-
-                const hasMatch = setting.alert_times.some(t => t.startsWith(hourToCheck))
+                // Check if any alert time matches current hour or the hour 5 minutes ago
+                const hasMatch = setting.alert_times.some((t: string) => 
+                    t.startsWith(hourToCheck) || t.startsWith(previousHour)
+                )
 
                 if (hasMatch) {
                     notificationsToSend.push(

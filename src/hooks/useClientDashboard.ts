@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 import { useCoachSelection } from '@/context/CoachSelectionContext';
-import { useDailyCompletions } from './useDailyCompletions';
 import type { Assignment, BoardPost, ClientInfo } from '@/types/database';
 
 export function useClientDashboard() {
@@ -14,7 +13,12 @@ export function useClientDashboard() {
     const [allAssignmentsMeta, setAllAssignmentsMeta] = useState<Pick<Assignment, 'id' | 'plan_id' | 'type' | 'completed' | 'title'>[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { isCompletedToday, toggleCompletion, fetchCompletions, getTodayStr } = useDailyCompletions();
+
+    // Helper to get today string
+    const getTodayStr = () => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    };
 
     useEffect(() => {
         if (profile?.role === 'client' && !loadingPlans) {
@@ -39,7 +43,6 @@ export function useClientDashboard() {
 
             // 2. Get All Active Subscription Plans (Handled by Context)
             const now = new Date();
-            const today = getTodayStr();
 
             // 3. Get Assignments
             let assignQuery = supabase
@@ -61,9 +64,6 @@ export function useClientDashboard() {
 
             if (metaError) throw metaError;
             setAllAssignmentsMeta(metaData || []);
-
-            // 3c. Fetch today's daily completions
-            await fetchCompletions(today, today);
 
             // 4. Get Board Posts from all coaches the client is subscribed to
             const coachIds = plans?.map(p => p.coach_id) || [];
@@ -100,12 +100,6 @@ export function useClientDashboard() {
         }
     }
 
-    async function toggleAssignment(id: string, _currentStatus: boolean) {
-        // Use daily_completions instead of updating assignments.completed
-        const result = await toggleCompletion(id);
-        return result;
-    }
-
     // Filter logic
     const filteredAssignments = selectedPlanId === 'all'
         ? assignments
@@ -131,8 +125,6 @@ export function useClientDashboard() {
         setSelectedPlanId,
         loading,
         error,
-        toggleAssignment,
-        isCompletedToday,
         stats,
         refresh: fetchDashboardData
     };

@@ -30,7 +30,7 @@ import {
     Bell
 } from 'lucide-react';
 import { ClientNotificationsManager } from '@/components/coach/ClientNotificationsManager';
-import { CoachHabitCalendar } from '@/components/coach/CoachHabitCalendar';
+import { HabitCalendar } from '@/components/shared/HabitCalendar';
 import clsx from 'clsx';
 import type { ContentData } from '@/components/editor/ContentEditorCard';
 import { ContentEditorCard } from '@/components/editor/ContentEditorCard';
@@ -550,8 +550,7 @@ export default function CoachClientDetail() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                         >
-                            <CoachHabitCalendar
-                                assignments={assignments}
+                            <HabitCalendar
                                 clientId={clientId || ''}
                             />
                         </motion.div>

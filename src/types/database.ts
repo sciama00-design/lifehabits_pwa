@@ -74,11 +74,23 @@ export interface BoardPost {
     coach?: Profile; // Hydrated author
 }
 
-export interface DailyCompletion {
+export interface DailyFeedback {
     id: string;
     client_id: string;
-    assignment_id: string;
-    completed_date: string;
+    date: string; // YYYY-MM-DD
+    feeling: string;
+    exercises_done: boolean;
+    activities_summary: string | null;
     created_at: string;
 }
 
+export interface CoachNotification {
+    id: string;
+    coach_id: string;
+    client_id: string;
+    title: string;
+    message: string;
+    is_read: boolean;
+    created_at: string;
+    client?: Profile; // Hydrated client info
+}

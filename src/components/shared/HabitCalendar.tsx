@@ -5,8 +5,8 @@ import {
     ChevronRight,
     Calendar,
     CheckCircle2,
-    Leaf,
-    Play,
+    MessageSquare,
+    CheckSquare,
     X
 } from 'lucide-react';
 import {
@@ -22,31 +22,30 @@ import {
     isFuture
 } from 'date-fns';
 import { it } from 'date-fns/locale';
-import type { Assignment } from '@/types/database';
-import { useDailyCompletions } from '@/hooks/useDailyCompletions';
+import { useDailyFeedbacks } from '@/hooks/useDailyFeedbacks';
+import { useAuth } from '@/hooks/useAuth';
 
 interface HabitCalendarProps {
-    assignments: Assignment[];
+    clientId?: string;
 }
 
-export function HabitCalendar({ assignments }: HabitCalendarProps) {
+export function HabitCalendar({ clientId }: HabitCalendarProps) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-    const {
-        fetchCompletions,
-        getCompletionsForDate,
-        getCompletionCountByDate,
-        toggleCompletion,
-    } = useDailyCompletions();
+    const { profile } = useAuth();
+    const { fetchFeedbacks, getFeedbackForDate } = useDailyFeedbacks();
+    
+    const effectiveClientId = clientId || profile?.id;
 
-
-    // Fetch completions for the current month view
+    // Fetch feedbacks for the current month view
     useEffect(() => {
-        const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
-        const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
-        fetchCompletions(start, end);
-    }, [currentMonth, fetchCompletions]);
+        if (effectiveClientId) {
+            const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+            const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
+            fetchFeedbacks(effectiveClientId, start, end);
+        }
+    }, [currentMonth, effectiveClientId, fetchFeedbacks]);
 
     // Generate calendar days
     const calendarDays = useMemo(() => {
@@ -61,31 +60,15 @@ export function HabitCalendar({ assignments }: HabitCalendarProps) {
         return [...padding, ...days];
     }, [currentMonth]);
 
-    const completionCounts = useMemo(() => getCompletionCountByDate(), [getCompletionCountByDate]);
-
-    // Get trackable assignments that were assigned on or before a given date
-    const getAssignmentsForDate = (dateStr: string) =>
-        assignments.filter(a =>
-            (a.type === 'habit' || a.type === 'video') &&
-            a.scheduled_date <= dateStr
-        );
-
-    const getDayStatus = (date: Date): 'full' | 'partial' | 'none' | 'future' => {
+    const getDayStatus = (date: Date): 'full' | 'none' | 'future' => {
         if (isFuture(date) && !isToday(date)) return 'future';
         const dateStr = format(date, 'yyyy-MM-dd');
-        const dayAssignments = getAssignmentsForDate(dateStr);
-        if (dayAssignments.length === 0) return 'none';
-        const count = completionCounts[dateStr] || 0;
-        if (count === 0) return 'none';
-        if (count >= dayAssignments.length) return 'full';
-        return 'partial';
+        const feedback = getFeedbackForDate(dateStr);
+        return feedback ? 'full' : 'none';
     };
 
     const selectedDateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
-    const selectedDayAssignments = selectedDateStr ? getAssignmentsForDate(selectedDateStr) : [];
-    const selectedDayCompletions = selectedDateStr ? getCompletionsForDate(selectedDateStr) : [];
-    const completedAssignmentIds = new Set(selectedDayCompletions.map(c => c.assignment_id));
-    const isSelectedToday = selectedDate ? isToday(selectedDate) : false;
+    const selectedDayFeedback = selectedDateStr ? getFeedbackForDate(selectedDateStr) : null;
 
     const weekDays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
@@ -100,7 +83,7 @@ export function HabitCalendar({ assignments }: HabitCalendarProps) {
                             <Calendar className="h-3.5 w-3.5 text-primary" />
                         </div>
                         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                            Il Tuo Calendario
+                            {clientId ? 'Calendario del Cliente' : 'Il Tuo Calendario'}
                         </h3>
                     </div>
                 </div>
@@ -160,7 +143,6 @@ export function HabitCalendar({ assignments }: HabitCalendarProps) {
                                             : ''
                                     }
                                     ${status === 'full' && !isSelected ? 'bg-primary/20 text-primary' : ''}
-                                    ${status === 'partial' && !isSelected ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : ''}
                                     ${status === 'none' && !isSelected ? 'text-foreground/70 hover:bg-muted/50' : ''}
                                     ${status === 'future' ? 'text-muted-foreground/20 cursor-default' : 'cursor-pointer'}
                                 `}
@@ -168,9 +150,6 @@ export function HabitCalendar({ assignments }: HabitCalendarProps) {
                                 {format(day, 'd')}
                                 {status === 'full' && !isSelected && (
                                     <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-                                )}
-                                {status === 'partial' && !isSelected && (
-                                    <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-amber-500" />
                                 )}
                             </motion.button>
                         );
@@ -184,8 +163,8 @@ export function HabitCalendar({ assignments }: HabitCalendarProps) {
                         <span className="text-[9px] text-muted-foreground">Completo</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 border border-amber-500/30" />
-                        <span className="text-[9px] text-muted-foreground">Parziale</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-primary/20 border border-primary/30" />
+                        <span className="text-[9px] text-muted-foreground">Check-in Effettuato</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-2.5 h-2.5 rounded-full bg-muted/50 border border-border" />
@@ -219,80 +198,60 @@ export function HabitCalendar({ assignments }: HabitCalendarProps) {
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto pr-1 -mr-1 space-y-2">
-                                {selectedDayAssignments.length === 0 ? (
+                            <div className="flex-1 overflow-y-auto pr-1 -mr-1 space-y-4">
+                                {!selectedDayFeedback ? (
                                     <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                                        <div className="p-3 rounded-full bg-muted/30 mb-3">
-                                            <Calendar className="h-6 w-6 text-muted-foreground/50" />
+                                        <div className="p-4 rounded-full bg-muted/30 mb-4">
+                                            <Calendar className="h-8 w-8 text-muted-foreground/30" />
                                         </div>
-                                        <p className="text-xs text-muted-foreground/70">
-                                            Nessuna abitudine o video assegnato
+                                        <p className="text-sm font-semibold text-foreground/80">
+                                            Nessun check-in
+                                        </p>
+                                        <p className="text-xs text-muted-foreground/60 mt-1 max-w-[200px]">
+                                            Non è stato effettuato il resoconto per questa giornata.
                                         </p>
                                     </div>
                                 ) : (
-                                    <>
-                                        {selectedDayAssignments.map(assignment => {
-                                            const done = completedAssignmentIds.has(assignment.id);
-                                            return (
-                                                <motion.div
-                                                    key={assignment.id}
-                                                    initial={{ opacity: 0, x: -5 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    className={`
-                                                        flex items-center gap-3 p-3 rounded-xl transition-all duration-200 border
-                                                        ${done
-                                                            ? 'bg-primary/5 border-primary/10'
-                                                            : 'bg-card border-border/50 shadow-sm'
-                                                        }
-                                                        ${isSelectedToday ? 'cursor-pointer active:scale-[0.98]' : ''}
-                                                    `}
-                                                    onClick={() => {
-                                                        if (isSelectedToday && selectedDateStr) {
-                                                            toggleCompletion(assignment.id, selectedDateStr);
-                                                        }
-                                                    }}
-                                                >
-                                                    {/* Icon */}
-                                                    <div className={`
-                                                        p-2 rounded-lg flex-shrink-0
-                                                        ${done ? 'bg-primary/10' : 'bg-muted/40'}
-                                                    `}>
-                                                        {assignment.type === 'habit'
-                                                            ? <Leaf className={`h-4 w-4 ${done ? 'text-primary' : 'text-muted-foreground/60'}`} />
-                                                            : <Play className={`h-4 w-4 ${done ? 'text-primary' : 'text-muted-foreground/60'}`} />
-                                                        }
-                                                    </div>
-
-                                                    {/* Title */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className={`text-xs font-semibold truncate ${done ? 'text-foreground' : 'text-foreground/80'}`}>
-                                                            {assignment.title}
-                                                        </p>
-                                                        <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium mt-0.5">
-                                                            {assignment.type === 'habit' ? 'Abitudine' : 'Video'}
-                                                        </p>
-                                                    </div>
-
-                                                    {/* Status */}
-                                                    {done ? (
-                                                        <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
-                                                    ) : (
-                                                        <div className={`h-5 w-5 rounded-full border-2 flex-shrink-0 ${isSelectedToday ? 'border-muted-foreground/30' : 'border-muted/30'}`} />
-                                                    )}
-                                                </motion.div>
-                                            );
-                                        })}
-
-                                        {/* Summary Footer */}
-                                        <div className="text-center pt-2 pb-1">
-                                            <p className="text-[10px] bg-muted/30 inline-block px-3 py-1 rounded-full text-muted-foreground font-medium">
-                                                <span className="text-primary font-bold">{selectedDayCompletions.length}</span>
-                                                <span className="opacity-50 mx-1">/</span>
-                                                <span>{selectedDayAssignments.length}</span>
-                                                <span className="ml-1 opacity-70">completati</span>
-                                            </p>
+                                    <div className="space-y-4 pt-1">
+                                        <div className="space-y-2">
+                                            <h5 className="text-[10px] font-bold uppercase tracking-widest text-primary/80 flex items-center gap-1.5">
+                                                <MessageSquare className="h-3.5 w-3.5" /> Come ti sentivi
+                                            </h5>
+                                            <div className="p-3 bg-muted/40 rounded-xl border border-border">
+                                                <p className="text-sm text-foreground leading-relaxed">{selectedDayFeedback.feeling}</p>
+                                            </div>
                                         </div>
-                                    </>
+
+                                        <div className="space-y-2">
+                                            <h5 className="text-[10px] font-bold uppercase tracking-widest text-primary/80 flex items-center gap-1.5">
+                                                <CheckSquare className="h-3.5 w-3.5" /> Esercizi
+                                            </h5>
+                                            <div className="p-3 bg-muted/40 rounded-xl border border-border flex items-center gap-2">
+                                                {selectedDayFeedback.exercises_done ? (
+                                                    <>
+                                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                                        <span className="text-sm font-medium text-foreground">Completati</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <X className="h-4 w-4 text-destructive" />
+                                                        <span className="text-sm font-medium text-foreground">Non completati</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {selectedDayFeedback.activities_summary && (
+                                            <div className="space-y-2">
+                                                <h5 className="text-[10px] font-bold uppercase tracking-widest text-primary/80 flex items-center gap-1.5">
+                                                    <Calendar className="h-3.5 w-3.5" /> Riepilogo Attività
+                                                </h5>
+                                                <div className="p-3 bg-muted/40 rounded-xl border border-border">
+                                                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{selectedDayFeedback.activities_summary}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         </motion.div>
