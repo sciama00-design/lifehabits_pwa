@@ -3,12 +3,20 @@ import { useState, useEffect } from 'react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import { Bell, AlertCircle, Loader2, Smartphone, Share2 } from 'lucide-react';
+import { Bell, AlertCircle, Loader2, Smartphone, Share2, Wrench, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function NotificationSettings() {
-    const { subscription, subscribe, error: pushError, isIOS, isStandalone } = usePushNotifications();
+    const { 
+        subscription, 
+        subscribe, 
+        repairNotifications, 
+        loading: pushLoading, 
+        error: pushError, 
+        isIOS, 
+        isStandalone 
+    } = usePushNotifications();
     const { profile } = useAuth();
     const [isEnabled, setIsEnabled] = useState(true);
     const [loadingSettings, setLoadingSettings] = useState(true);
@@ -167,6 +175,32 @@ export default function NotificationSettings() {
                             />
                         </button>
                     )}
+                </div>
+
+                {/* Troubleshooting section */}
+                <div className="pt-4 border-t border-white/5 space-y-4">
+                    <div className="flex items-center gap-2 text-muted-foreground/60">
+                        <Wrench className="h-3 w-3" />
+                        <p className="text-[10px] font-bold uppercase tracking-wider">Risoluzione Problemi</p>
+                    </div>
+                    
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                            Se non ricevi le notifiche nonostante siano attive, prova a ripristinare il collegamento. L'app verrà ricaricata.
+                        </p>
+                        <button
+                            onClick={repairNotifications}
+                            disabled={pushLoading}
+                            className="flex items-center gap-2 px-4 h-9 rounded-xl bg-white/5 border border-white/5 text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors disabled:opacity-50"
+                        >
+                            {pushLoading ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                                <RefreshCw className="h-3 w-3" />
+                            )}
+                            Ripristina Notifiche
+                        </button>
+                    </div>
                 </div>
             </div>
         </motion.section>

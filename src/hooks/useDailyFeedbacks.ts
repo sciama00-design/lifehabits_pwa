@@ -65,36 +65,40 @@ export function useDailyFeedbacks() {
                 setFeedbacks(prev => [...prev.filter(f => f.date !== date), feedbackData]);
             }
 
-            // 2. Fetch Coach ID to send notification
-            const { data: coachRel } = await supabase
+            // 2. Fetch ALL coaches linked to this client
+            const { data: coachRels } = await supabase
                 .from('client_coaches')
                 .select('coach_id')
-                .eq('client_id', profile.id)
-                .single();
+                .eq('client_id', profile.id);
 
-            if (coachRel?.coach_id) {
-                // 3. Insert Coach Notification
+            if (coachRels && coachRels.length > 0) {
                 const title = 'Nuovo Feedback! 📝';
                 const message = `Hai ricevuto un feedback da ${profile.full_name?.split(' ')[0] || 'un cliente'}`;
+
+                // 3. Insert a notification row for EACH coach in one batch insert
                 await supabase
                     .from('coach_notifications')
-                    .insert({
-                        coach_id: coachRel.coach_id,
-                        client_id: profile.id,
-                        title: title,
-                        message: message
-                    });
+                    .insert(
+                        coachRels.map(rel => ({
+                            coach_id: rel.coach_id,
+                            client_id: profile.id,
+                            title,
+                            message
+                        }))
+                    );
 
-                // 4. Trigger Push Notification to Coach
-                supabase.functions.invoke('push-dispatcher', {
-                    body: {
-                        type: 'direct',
-                        user_id: coachRel.coach_id,
-                        title: 'Nuovo Feedback! 📝',
-                        body: message,
-                        url: `/coach/clients/${profile.id}`
-                    }
-                }).catch(err => console.error("Push dispatcher error:", err)); // Fire and forget
+                // 4. Trigger push notification for EACH coach (fire-and-forget)
+                coachRels.forEach(rel => {
+                    supabase.functions.invoke('push-dispatcher', {
+                        body: {
+                            type: 'direct',
+                            user_id: rel.coach_id,
+                            title,
+                            body: message,
+                            url: `/coach/clients/${profile.id}`
+                        }
+                    }).catch(err => console.error("Push dispatcher error:", err));
+                });
             }
 
             return true;

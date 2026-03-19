@@ -28,8 +28,79 @@ export function usePushNotifications() {
             const registration = await navigator.serviceWorker.ready
             const sub = await registration.pushManager.getSubscription()
             setSubscription(sub)
+
+            // Auto-sync: if we have a locally active subscription, ensure it's in the DB
+            if (sub && user) {
+                syncSubscription(sub, user.id);
+            }
         }
     }
+
+    const syncSubscription = async (sub: PushSubscription, userId: string) => {
+        try {
+            const { data: existing } = await supabase
+                .from('push_subscriptions')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('subscription->>endpoint', sub.endpoint)
+                .maybeSingle();
+
+            if (!existing) {
+                console.log("Sync: Subscription missing from DB, re-saving...");
+                await supabase.from('push_subscriptions').insert({
+                    user_id: userId,
+                    subscription: sub,
+                    user_agent: navigator.userAgent
+                });
+            }
+        } catch (err) {
+            console.error("Sync error:", err);
+        }
+    };
+
+    const repairNotifications = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            console.log("Starting notification repair...");
+            
+            // 1. Unsubscribe from push if exists
+            const registration = await navigator.serviceWorker.ready;
+            const sub = await registration.pushManager.getSubscription();
+            if (sub) {
+                await sub.unsubscribe();
+                console.log("Unsubscribed from push.");
+            }
+
+            // 2. Unregister ALL service workers to be sure
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const reg of registrations) {
+                await reg.unregister();
+                console.log("Unregistered service worker:", reg.scope);
+            }
+
+            // 3. Clear from DB (optional but keeps things clean)
+            if (user) {
+                await supabase
+                    .from('push_subscriptions')
+                    .delete()
+                    .eq('user_id', user.id);
+                console.log("Cleared subscriptions from DB.");
+            }
+
+            // 4. Force reload or wait for re-registration
+            // We'll try to re-subscribe immediately after a short delay
+            setTimeout(async () => {
+                window.location.reload();
+            }, 1000);
+
+        } catch (err: any) {
+            console.error("Repair failed:", err);
+            setError("Ripristino fallito: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
 
     const subscribe = useCallback(async () => {
         console.log("Starting subscribe process...");
@@ -174,7 +245,7 @@ export function usePushNotifications() {
                 body: {
                     type: 'direct',
                     user_id: user.id,
-                    title: 'Test Notifica 🔔',
+                    title: 'Test Notifica \ud83d\udd14',
                     body: 'Se leggi questo, le notifiche funzionano!',
                     url: '/profile'
                 }
@@ -194,6 +265,7 @@ export function usePushNotifications() {
         subscription,
         subscribe,
         unsubscribe,
+        repairNotifications,
         sendTestNotification,
         loading,
         error,

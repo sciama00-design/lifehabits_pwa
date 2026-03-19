@@ -28,6 +28,7 @@ import { CoachSelectionProvider } from '@/context/CoachSelectionContext';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { InstallPWA } from '@/components/shared/InstallPWA';
 import PrivacyConsentModal from '@/components/shared/PrivacyConsentModal';
+import NotificationUpdateModal from '@/components/shared/NotificationUpdateModal';
 import { useAuth } from '@/hooks/useAuth';
 
 function AppContent() {
@@ -41,6 +42,7 @@ function AppContent() {
     <>
       <InstallPWA />
       {needsPrivacyConsent && <PrivacyConsentModal />}
+      {user && <NotificationUpdateModal />}
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password" element={<ResetPassword />} />
