@@ -30,7 +30,10 @@ import {
     Bell
 } from 'lucide-react';
 import { ClientNotificationsManager } from '@/components/coach/ClientNotificationsManager';
-import { HabitCalendar } from '@/components/shared/HabitCalendar';
+import { UnifiedCalendar } from '@/components/shared/UnifiedCalendar';
+import { appointmentService } from '@/lib/appointmentService';
+import { useDailyFeedbacks } from '@/hooks/useDailyFeedbacks';
+import type { Appointment } from '@/types/database';
 import clsx from 'clsx';
 import type { ContentData } from '@/components/editor/ContentEditorCard';
 import { ContentEditorCard } from '@/components/editor/ContentEditorCard';
@@ -74,6 +77,11 @@ export default function CoachClientDetail() {
         refresh: refreshPlans
     } = useSubscriptionPlans(clientId);
 
+    const { 
+        feedbacks: clientFeedbacks, 
+        fetchFeedbacks: fetchClientFeedbacks 
+    } = useDailyFeedbacks();
+
     const {
         linkColleague,
         unlinkColleague,
@@ -99,6 +107,16 @@ export default function CoachClientDetail() {
     // UI State for custom dropdown
     const [isPlanFilterOpen, setIsPlanFilterOpen] = useState(false);
     const planFilterRef = useRef<HTMLDivElement>(null);
+
+    // Appointments and feedbacks for this client
+    const [clientAppointments, setClientAppointments] = useState<Appointment[]>([]);
+
+    useEffect(() => {
+        if (clientId) {
+            appointmentService.getAppointments(clientId, 'client').then(setClientAppointments);
+            fetchClientFeedbacks(clientId);
+        }
+    }, [clientId, fetchClientFeedbacks]);
 
     // Close dropdown on click outside
     useEffect(() => {
@@ -571,8 +589,11 @@ export default function CoachClientDetail() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                         >
-                            <HabitCalendar
-                                clientId={clientId || ''}
+                            <UnifiedCalendar
+                                appointments={clientAppointments}
+                                feedbacks={clientFeedbacks}
+                                isCoach={true}
+                                hideFeedback={false}
                             />
                         </motion.div>
                     )}

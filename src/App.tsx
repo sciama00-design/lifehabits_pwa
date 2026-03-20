@@ -24,6 +24,8 @@ import ClientDashboard from '@/pages/client/ClientDashboard';
 import ClientHabits from '@/pages/client/ClientHabits';
 import ClientVideos from '@/pages/client/ClientVideos';
 import BreathingExercise from '@/pages/client/BreathingExercise';
+import ClientCalendar from '@/pages/client/ClientCalendar';
+import CoachCalendar from '@/pages/coach/CoachCalendar';
 import { CoachSelectionProvider } from '@/context/CoachSelectionContext';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { InstallPWA } from '@/components/shared/InstallPWA';
@@ -58,6 +60,7 @@ function AppContent() {
         }>
           <Route path="/" element={<ClientDashboard />} />
           <Route path="/habits" element={<ClientHabits />} />
+          <Route path="/calendar" element={<ClientCalendar />} />
           <Route path="/videos" element={<ClientVideos />} />
           <Route path="/breathing" element={<BreathingExercise />} />
           <Route path="profile" element={<Settings />} />
@@ -76,6 +79,7 @@ function AppContent() {
           <Route path="dashboard" element={<CoachDashboard />} />
           <Route path="clients" element={<CoachClients />} />
           <Route path="clients/:clientId" element={<CoachClientDetail />} />
+          <Route path="calendar" element={<CoachCalendar />} />
           <Route path="library" element={<CoachLibrary />} />
           <Route path="board" element={<CoachBoard />} />
           <Route path="system" element={<SystemMonitor />} />

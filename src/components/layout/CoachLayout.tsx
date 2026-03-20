@@ -5,7 +5,8 @@ import {
     Library,
     LayoutDashboard,
     LogOut,
-    Settings
+    Settings,
+    Calendar
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,6 +36,7 @@ export default function CoachLayout() {
     const navItems = [
         { to: '/coach/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/coach/clients', icon: Users, label: 'Clienti' },
+        { to: '/coach/calendar', icon: Calendar, label: 'Calendario' },
         { to: '/coach/library', icon: Library, label: 'Libreria' },
         { to: '/coach/settings', icon: Settings, label: 'Impostazioni' },
     ];

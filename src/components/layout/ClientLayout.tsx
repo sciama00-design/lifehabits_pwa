@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { Home, Settings, Play, Leaf } from 'lucide-react';
+import { Home, Settings, Play, Leaf, Calendar } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import clsx from 'clsx';
 import { MobileBottomNav } from './MobileBottomNav';
@@ -22,6 +22,7 @@ export default function ClientLayout() {
     const navItems = [
         { to: '/', icon: Home, label: 'Home' },
         { to: '/habits', icon: Leaf, label: 'Abitudini' },
+        { to: '/calendar', icon: Calendar, label: 'Calendario' },
         { to: '/videos', icon: Play, label: 'Video' },
         { to: '/profile', icon: Settings, label: 'Profilo' },
     ];

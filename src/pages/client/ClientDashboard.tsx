@@ -2,11 +2,10 @@ import { useClientDashboard } from '@/hooks/useClientDashboard';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Bell, Sparkles, Leaf, Play, Wind, Calendar, ChevronRight } from 'lucide-react';
+import { Bell, Sparkles, Leaf, Play, Wind, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ContentCard } from '@/components/shared/ContentCard';
 import { TextPostModal } from '@/components/shared/TextPostModal';
-import { HabitCalendar } from '@/components/shared/HabitCalendar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import type { BoardPost } from '@/types/database';
@@ -102,7 +101,6 @@ export default function ClientDashboard() {
     };
 
     const [selectedPost, setSelectedPost] = useState<BoardPost | null>(null);
-    const [calendarOpen, setCalendarOpen] = useState(false);
     const today = new Date();
 
     const firstName = profile?.full_name?.split(' ')[0] || '';
@@ -368,46 +366,7 @@ export default function ClientDashboard() {
                             </div>
                         </GradientBlock>
                     </Link>
-
-                    {/* Calendar Compact Block (full width) */}
-                    <div className="col-span-2">
-                        <GradientBlock
-                            gradientFrom="#1e40af"
-                            gradientTo="#3b82f6"
-                            borderColor="rgba(96,165,250,0.3)"
-                            icon={<Calendar className="h-4 w-4 text-white" />}
-                            bgIcon={<Calendar className="h-12 w-12 text-white" />}
-                            onClick={() => setCalendarOpen(!calendarOpen)}
-                        >
-                            <div>
-                                <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-1">
-                                    Calendario
-                                </p>
-                                <h3 className="text-sm font-bold text-white leading-snug">
-                                    {format(today, 'd MMMM', { locale: it })}
-                                </h3>
-                                <p className="text-[10px] text-white/50 mt-1 flex items-center gap-1">
-                                    {calendarOpen ? 'Tocca per chiudere' : 'Tocca per aprire'} <ChevronRight className={`h-3 w-3 transition-transform ${calendarOpen ? 'rotate-90' : ''}`} />
-                                </p>
-                            </div>
-                        </GradientBlock>
-                    </div>
                 </div>
-
-                {/* Calendar Expanded */}
-                <AnimatePresence>
-                    {calendarOpen && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
-                            className="overflow-hidden"
-                        >
-                            <HabitCalendar />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
 
                 {/* Breathing Exercise (full width) */}
                 <Link to="/breathing" className="block">

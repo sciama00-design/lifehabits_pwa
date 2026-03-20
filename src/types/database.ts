@@ -84,6 +84,14 @@ export interface DailyFeedback {
     created_at: string;
 }
 
+export interface DailyCompletion {
+    id: string;
+    client_id: string;
+    assignment_id: string;
+    completed_date: string;
+    created_at: string;
+}
+
 export interface CoachNotification {
     id: string;
     coach_id: string;
@@ -95,10 +103,19 @@ export interface CoachNotification {
     client?: Profile; // Hydrated client info
 }
 
-export interface DailyCompletion {
+export interface Appointment {
     id: string;
     client_id: string;
-    assignment_id: string;
-    completed_date: string; // YYYY-MM-DD
+    coach_id: string;
+    created_by: string;
+    title: string;
+    description: string | null;
+    start_time: string;
+    end_time: string;
+    location: string | null;
+    meeting_link: string | null;
     created_at: string;
+    updated_at: string;
+    client?: Profile; // Hydrated
+    coach?: Profile; // Hydrated
 }
