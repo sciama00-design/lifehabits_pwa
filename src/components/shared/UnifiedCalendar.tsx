@@ -54,7 +54,7 @@ export function UnifiedCalendar({
     hideFeedback = false
 }: UnifiedCalendarProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(monthStart);
@@ -66,16 +66,22 @@ export function UnifiedCalendar({
         end: endDate,
     }), [startDate, endDate]);
 
+    const monthlyStats = useMemo(() => ({
+        appointments: appointments.filter(a => isSameMonth(new Date(a.start_time), monthStart)).length,
+        feedbacks: feedbacks.filter(f => isSameMonth(new Date(f.date), monthStart)).length
+    }), [appointments, feedbacks, monthStart]);
+
     const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
     const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
 
     const getDayData = (day: Date) => {
+        const dayDateStr = format(day, 'yyyy-MM-dd');
         const dayAppointments = appointments.filter(app => isSameDay(new Date(app.start_time), day));
-        const dayFeedback = feedbacks.find(f => f.date === format(day, 'yyyy-MM-dd'));
-        return { dayAppointments, dayFeedback };
+        const dayFeedbacks = feedbacks.filter(f => f.date === dayDateStr);
+        return { dayAppointments, dayFeedbacks };
     };
 
-    const selectedDayData = selectedDate ? getDayData(selectedDate) : { dayAppointments: [], dayFeedback: null };
+    const selectedDayData = selectedDate ? getDayData(selectedDate) : { dayAppointments: [], dayFeedbacks: [] };
 
     return (
         <div className="relative">
@@ -94,11 +100,11 @@ export function UnifiedCalendar({
                                 </h3>
                                 <div className="flex items-center gap-3 mt-1">
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                                        <div className="h-1.5 w-1.5 rounded-full bg-primary" /> {appointments.length} Appuntamenti
+                                        <div className="h-1.5 w-1.5 rounded-full bg-primary" /> {monthlyStats.appointments} Appuntamenti
                                     </span>
                                     {!hideFeedback && (
                                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                                            <div className="h-1.5 w-1.5 rounded-full bg-rose-500" /> {feedbacks.length} Feedback
+                                            <div className="h-1.5 w-1.5 rounded-full bg-rose-500" /> {monthlyStats.feedbacks} Feedback
                                         </span>
                                     )}
                                 </div>
@@ -132,7 +138,7 @@ export function UnifiedCalendar({
                     {/* Grid Content */}
                     <div className="grid grid-cols-7">
                         {calendarDays.map((day: Date, idx: number) => {
-                            const { dayAppointments, dayFeedback } = getDayData(day);
+                            const { dayAppointments, dayFeedbacks } = getDayData(day);
                             const isSelectedMonth = isSameMonth(day, monthStart);
                             const isToday = isDateToday(day);
                             const isSelected = selectedDate && isSameDay(day, selectedDate);
@@ -161,7 +167,7 @@ export function UnifiedCalendar({
                                             {dayAppointments.length > 0 && (
                                                 <div className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
                                             )}
-                                            {dayFeedback && !hideFeedback && (
+                                            {dayFeedbacks.length > 0 && !hideFeedback && (
                                                 <div className="h-1.5 w-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
                                             )}
                                         </div>
@@ -181,9 +187,9 @@ export function UnifiedCalendar({
                                                 + {dayAppointments.length - 2} altri
                                             </div>
                                         )}
-                                        {dayFeedback && !hideFeedback && (
+                                        {dayFeedbacks.length > 0 && !hideFeedback && (
                                             <div className="px-1.5 py-0.5 text-[9px] font-bold bg-rose-500/10 border border-rose-500/10 text-rose-500 rounded-md truncate flex items-center gap-1">
-                                                <CheckCircle2 className="h-2.5 w-2.5 shrink-0" /> Check-in
+                                                <CheckCircle2 className="h-2.5 w-2.5 shrink-0" /> {dayFeedbacks.length === 1 ? 'Check-in' : `${dayFeedbacks.length} Feedback`}
                                             </div>
                                         )}
                                     </div>
@@ -357,7 +363,7 @@ export function UnifiedCalendar({
                                             <h5 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground">Feedback Giornaliero</h5>
                                         </div>
 
-                                        {!selectedDayData.dayFeedback ? (
+                                        {selectedDayData.dayFeedbacks.length === 0 ? (
                                             <div className="p-8 text-center bg-white/[0.02] rounded-2xl border border-dashed border-white/5">
                                                 <p className="text-xs font-medium text-muted-foreground/40 italic">
                                                     {(isFuture(selectedDate) && !isDateToday(selectedDate)) 
@@ -366,49 +372,62 @@ export function UnifiedCalendar({
                                                 </p>
                                             </div>
                                         ) : (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="p-6 rounded-[var(--radius-2xl)] bg-rose-500/[0.03] border border-rose-500/15 space-y-6 relative overflow-hidden"
-                                            >
-                                                <div className="absolute top-0 right-0 p-6 opacity-10">
-                                                    <Sparkles className="h-10 w-10 text-rose-500" />
-                                                </div>
-                                                
-                                                <div className="space-y-2 relative">
-                                                    <p className="text-[9px] font-black uppercase tracking-widest text-rose-500">Stato d'animo</p>
-                                                    <p className="text-base font-medium text-foreground leading-relaxed italic pr-8">
-                                                        "{selectedDayData.dayFeedback.feeling}"
-                                                    </p>
-                                                </div>
-
-                                                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-lg">
-                                                    <div className={clsx(
-                                                        "h-10 w-10 rounded-xl flex items-center justify-center",
-                                                        selectedDayData.dayFeedback.exercises_done ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
-                                                    )}>
-                                                        {selectedDayData.dayFeedback.exercises_done ? <CheckCircle2 className="h-5 w-5" /> : <X className="h-5 w-5" />}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Allenamento</p>
-                                                        <p className={clsx(
-                                                            "text-xs font-black uppercase tracking-wider",
-                                                            selectedDayData.dayFeedback.exercises_done ? "text-emerald-400" : "text-rose-400"
-                                                        )}>
-                                                            {selectedDayData.dayFeedback.exercises_done ? "Sessione Completata 🎉" : "Sessione Saltata"}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                {selectedDayData.dayFeedback.activities_summary && (
-                                                    <div className="space-y-2">
-                                                        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Note Addizionali</p>
-                                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-xs text-muted-foreground/90 font-medium whitespace-pre-wrap leading-relaxed">
-                                                            {selectedDayData.dayFeedback.activities_summary}
+                                            <div className="space-y-6">
+                                                {selectedDayData.dayFeedbacks.map((feedback: DailyFeedback) => (
+                                                    <motion.div
+                                                        key={feedback.id}
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        className="p-6 rounded-[var(--radius-2xl)] bg-rose-500/[0.03] border border-rose-500/15 space-y-6 relative overflow-hidden"
+                                                    >
+                                                        <div className="absolute top-0 right-0 p-6 opacity-10">
+                                                            <Sparkles className="h-10 w-10 text-rose-500" />
                                                         </div>
-                                                    </div>
-                                                )}
-                                            </motion.div>
+                                                        
+                                                        <div className="space-y-2 relative">
+                                                            <p className="text-[9px] font-black uppercase tracking-widest text-rose-500">Stato d'animo</p>
+                                                            {isCoach && feedback.client && (
+                                                                <div className="flex items-center gap-2 mb-2 p-1.5 bg-rose-500/5 rounded-xl border border-rose-500/10 w-fit">
+                                                                    <div className="h-6 w-6 rounded-lg bg-rose-500/20 flex items-center justify-center text-[10px] text-rose-500 font-black">
+                                                                        {feedback.client.full_name?.charAt(0)}
+                                                                    </div>
+                                                                    <span className="text-[10px] font-black text-rose-500/80 uppercase tracking-widest">{feedback.client.full_name}</span>
+                                                                </div>
+                                                            )}
+                                                            <p className="text-base font-medium text-foreground leading-relaxed italic pr-8">
+                                                                "{feedback.feeling}"
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-lg">
+                                                            <div className={clsx(
+                                                                "h-10 w-10 rounded-xl flex items-center justify-center",
+                                                                feedback.exercises_done ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                                                            )}>
+                                                                {feedback.exercises_done ? <CheckCircle2 className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Allenamento</p>
+                                                                <p className={clsx(
+                                                                    "text-xs font-black uppercase tracking-wider",
+                                                                    feedback.exercises_done ? "text-emerald-400" : "text-rose-400"
+                                                                )}>
+                                                                    {feedback.exercises_done ? "Sessione Completata 🎉" : "Sessione Saltata"}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        {feedback.activities_summary && (
+                                                            <div className="space-y-2">
+                                                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Note Addizionali</p>
+                                                                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-xs text-muted-foreground/90 font-medium whitespace-pre-wrap leading-relaxed">
+                                                                    {feedback.activities_summary}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </motion.div>
+                                                ))}
+                                            </div>
                                         )}
                                     </section>
                                 )}

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { appointmentService } from '@/lib/appointmentService';
 import { UnifiedCalendar } from '@/components/shared/UnifiedCalendar';
+import { useClients } from '@/hooks/useClients';
+import { useDailyFeedbacks } from '@/hooks/useDailyFeedbacks';
 import { AddAppointmentModal } from '@/components/appointments/AddAppointmentModal';
 import { Plus, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -14,9 +16,13 @@ export default function CoachCalendar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
 
-  const fetchAppointments = async () => {
+  const { clients, loading: clientsLoading } = useClients();
+  const { fetchFeedbacksForClients, feedbacks } = useDailyFeedbacks();
+
+  const fetchData = async () => {
     if (!profile) return;
     try {
+      setLoading(true);
       const data = await appointmentService.getAppointments(profile.id, 'coach');
       setAppointments(data);
     } catch (error) {
@@ -27,8 +33,15 @@ export default function CoachCalendar() {
   };
 
   useEffect(() => {
-    fetchAppointments();
+    fetchData();
   }, [profile]);
+
+  useEffect(() => {
+    if (clients.length > 0) {
+      const clientIds = clients.map(c => c.id);
+      fetchFeedbacksForClients(clientIds);
+    }
+  }, [clients, fetchFeedbacksForClients]);
 
   const handleAddClick = (date?: Date) => {
     setEditingAppointment(undefined);
@@ -49,7 +62,7 @@ export default function CoachCalendar() {
     if (confirm('Sei sicuro di voler eliminare questo appuntamento?')) {
       try {
         await appointmentService.deleteAppointment(id);
-        fetchAppointments();
+        fetchData();
       } catch (error) {
         console.error('Error deleting appointment:', error);
       }
@@ -84,26 +97,26 @@ export default function CoachCalendar() {
         </motion.div>
       </section>
 
-      {loading ? (
+      {loading || clientsLoading ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : (
         <UnifiedCalendar
           appointments={appointments}
-          feedbacks={[]}
+          feedbacks={feedbacks}
           isCoach={true}
           onAddAppointment={handleAddClick}
           onEditAppointment={handleEditClick}
           onDeleteAppointment={handleDeleteClick}
-          hideFeedback={true}
+          hideFeedback={false}
         />
       )}
 
       <AddAppointmentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchAppointments}
+        onSuccess={fetchData}
         appointment={editingAppointment}
       />
     </div>

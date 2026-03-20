@@ -82,6 +82,7 @@ export interface DailyFeedback {
     exercises_done: boolean;
     activities_summary: string | null;
     created_at: string;
+    client?: Profile; // Hydrated client info
 }
 
 export interface DailyCompletion {

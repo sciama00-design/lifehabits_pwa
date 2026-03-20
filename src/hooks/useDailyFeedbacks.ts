@@ -14,14 +14,15 @@ export function useDailyFeedbacks() {
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     };
 
-    // Fetch feedbacks for a specific client (used by both client and coach)
-    const fetchFeedbacks = useCallback(async (clientId: string, startDate?: string, endDate?: string) => {
+    // Fetch feedbacks for multiple clients (used by coach)
+    const fetchFeedbacksForClients = useCallback(async (clientIds: string[], startDate?: string, endDate?: string) => {
+        if (clientIds.length === 0) return [];
         setLoading(true);
         try {
             let query = supabase
                 .from('daily_feedbacks')
-                .select('*')
-                .eq('client_id', clientId)
+                .select('*, client:profiles!daily_feedbacks_client_id_fkey(*)')
+                .in('client_id', clientIds)
                 .order('date', { ascending: true });
 
             if (startDate) query = query.gte('date', startDate);
@@ -32,12 +33,17 @@ export function useDailyFeedbacks() {
             setFeedbacks(data || []);
             return data;
         } catch (err) {
-            console.error('Error fetching feedbacks:', err);
+            console.error('Error fetching feedbacks for clients:', err);
             return [];
         } finally {
             setLoading(false);
         }
     }, []);
+
+    // Fetch feedbacks for a specific client (used by both client and coach)
+    const fetchFeedbacks = useCallback(async (clientId: string, startDate?: string, endDate?: string) => {
+        return fetchFeedbacksForClients([clientId], startDate, endDate);
+    }, [fetchFeedbacksForClients]);
 
     // Submit a new feedback
     const submitFeedback = useCallback(async (feeling: string, exercisesDone: boolean, summary: string) => {
@@ -117,6 +123,7 @@ export function useDailyFeedbacks() {
         feedbacks,
         loading,
         fetchFeedbacks,
+        fetchFeedbacksForClients,
         submitFeedback,
         getFeedbackForDate,
         getTodayStr
