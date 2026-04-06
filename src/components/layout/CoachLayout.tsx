@@ -6,7 +6,8 @@ import {
     LayoutDashboard,
     LogOut,
     Settings,
-    Calendar
+    Calendar,
+    Ruler
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,6 +17,7 @@ import { useCoachNotifications } from '@/hooks/useCoachNotifications';
 import { CoachNotificationsList } from '@/components/coach/CoachNotificationsList';
 
 import { MobileBottomNav } from './MobileBottomNav';
+import { MobileMoreMenu } from './MobileMoreMenu';
 import { Bell } from 'lucide-react';
 
 export default function CoachLayout() {
@@ -25,6 +27,7 @@ export default function CoachLayout() {
     const [isNavVisible, setIsNavVisible] = useState(true);
     const [lastScrollY, setLastScrollY] = useState(0);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
     const { notifications, unreadCount, markAsRead, markAllAsRead } = useCoachNotifications();
 
@@ -37,9 +40,18 @@ export default function CoachLayout() {
         { to: '/coach/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/coach/clients', icon: Users, label: 'Clienti' },
         { to: '/coach/calendar', icon: Calendar, label: 'Calendario' },
+    ];
+
+    const secondaryNavItems = [
+        { to: '/coach/posture', icon: Ruler, label: 'Analisi Posturale' },
         { to: '/coach/library', icon: Library, label: 'Libreria' },
         { to: '/coach/settings', icon: Settings, label: 'Impostazioni' },
     ];
+
+    // Combine for desktop sidebar
+    const allNavItems = [...navItems, ...secondaryNavItems];
+
+    const isMoreActive = secondaryNavItems.some(item => location.pathname.startsWith(item.to));
 
     // Check if we are on the client detail page
     // Pattern: /coach/clients/:id (where id is not empty and not 'new' if that's a thing, but mostly just check depth)
@@ -98,7 +110,7 @@ export default function CoachLayout() {
                 </div>
 
                 <nav className="flex-1 space-y-1.5 px-6 py-4">
-                    {navItems.map((item) => (
+                    {allNavItems.map((item) => (
                         <NavLink
                             key={item.to}
                             to={item.to}
@@ -189,8 +201,19 @@ export default function CoachLayout() {
                 </main>
 
                 {/* Mobile Bottom Navigation */}
-                <MobileBottomNav items={navItems} isVisible={isNavVisible} />
+                <MobileBottomNav 
+                    items={navItems} 
+                    isVisible={isNavVisible} 
+                    onMoreClick={() => setIsMoreMenuOpen(true)}
+                    isMoreActive={isMoreActive}
+                />
             </div>
+
+            <MobileMoreMenu
+                isOpen={isMoreMenuOpen}
+                onClose={() => setIsMoreMenuOpen(false)}
+                profile={profile}
+            />
 
             <CoachNotificationsList
                 isOpen={isNotificationsOpen}

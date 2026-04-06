@@ -7,12 +7,14 @@ import { supabase } from '@/lib/supabase';
 import clsx from 'clsx';
 import { MobileBottomNav } from './MobileBottomNav';
 import { DesktopSidebar } from './DesktopSidebar';
+import { ClientMoreMenu } from './ClientMoreMenu';
 
 export default function ClientLayout() {
     const { profile } = useAuth();
     const navigate = useNavigate();
     const [isNavVisible, setIsNavVisible] = useState(true);
     const [lastScrollY, setLastScrollY] = useState(0);
+    const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -26,6 +28,15 @@ export default function ClientLayout() {
         { to: '/videos', icon: Play, label: 'Video' },
         { to: '/profile', icon: Settings, label: 'Profilo' },
     ];
+
+    // For mobile we only show a few items + More
+    const mobileNavItems = [
+        { to: '/', icon: Home, label: 'Home' },
+        { to: '/habits', icon: Leaf, label: 'Abitudini' },
+        { to: '/calendar', icon: Calendar, label: 'Calendario' },
+    ];
+
+    const isMoreActive = !mobileNavItems.some(item => location.pathname === item.to) && location.pathname !== '/';
 
     // Scroll-to-hide logic
     useEffect(() => {
@@ -103,7 +114,18 @@ export default function ClientLayout() {
             </div>
 
             {/* Mobile Bottom Navigation */}
-            <MobileBottomNav items={navItems} isVisible={isNavVisible} />
+            <MobileBottomNav 
+                items={mobileNavItems} 
+                isVisible={isNavVisible} 
+                onMoreClick={() => setIsMoreMenuOpen(true)}
+                isMoreActive={isMoreActive}
+            />
+
+            <ClientMoreMenu
+                isOpen={isMoreMenuOpen}
+                onClose={() => setIsMoreMenuOpen(false)}
+                profile={profile}
+            />
         </div>
     );
 }

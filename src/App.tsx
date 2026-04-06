@@ -14,6 +14,7 @@ import CoachClients from '@/pages/coach/CoachClients';
 import CoachClientDetail from '@/pages/coach/CoachClientDetail';
 import CoachLibrary from '@/pages/coach/CoachLibrary';
 import CoachBoard from '@/pages/coach/CoachBoard';
+import PostureAnalysis from '@/pages/coach/PostureAnalysis';
 import SystemMonitor from '@/pages/coach/SystemMonitor';
 import Settings from '@/pages/Settings';
 import Login from '@/pages/Login';
@@ -80,6 +81,7 @@ function AppContent() {
           <Route path="clients" element={<CoachClients />} />
           <Route path="clients/:clientId" element={<CoachClientDetail />} />
           <Route path="calendar" element={<CoachCalendar />} />
+          <Route path="posture" element={<PostureAnalysis />} />
           <Route path="library" element={<CoachLibrary />} />
           <Route path="board" element={<CoachBoard />} />
           <Route path="system" element={<SystemMonitor />} />
