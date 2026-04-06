@@ -33,6 +33,8 @@ export function PostureCanvas({
     const [selectedLineId, setSelectedLineId] = useState<string | null>(null); // Reference line for parallel
     const [isPanning, setIsPanning] = useState(false);
     const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+    const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null);
+    const [isPinching, setIsPinching] = useState(false);
     
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
@@ -259,29 +261,36 @@ export function PostureCanvas({
         }
     }, [isExporting, photo, draw, onExportComplete]);
 
-    const getMousePos = (e: React.MouseEvent | React.TouchEvent) => {
+    const getMousePos = useCallback((clientX: number, clientY: number) => {
         const canvas = canvasRef.current;
         if (!canvas) return { x: 0, y: 0 };
         const rect = canvas.getBoundingClientRect();
-        let clientX, clientY;
-        if ('touches' in e) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else {
-            const mouseEvent = e as React.MouseEvent;
-            clientX = mouseEvent.clientX;
-            clientY = mouseEvent.clientY;
-        }
         return {
             x: (((clientX - rect.left) - offset.x) / (rect.width * scale)) * 100,
             y: (((clientY - rect.top) - offset.y) / (rect.height * scale)) * 100
         };
-    };
+    }, [scale, offset]);
 
-    const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-        const pos = getMousePos(e);
+    const handleMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent | TouchEvent) => {
+        if ('touches' in e) {
+            if (e.touches.length > 1 && e.cancelable) e.preventDefault();
+            
+            if (e.touches.length === 2) {
+                setIsPinching(true);
+                const dist = Math.sqrt(
+                    Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) +
+                    Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2)
+                );
+                setLastTouchDistance(dist);
+                return;
+            }
+        }
+
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+        const pos = getMousePos(clientX, clientY);
         
-        if (('button' in e && e.button === 1) || activeTool === 'select') {
+        if (('button' in e && (e as React.MouseEvent).button === 1) || activeTool === 'select') {
             const pointUnderMouse = photo.points.find(p => {
                 const dist = Math.sqrt(Math.pow(p.x - pos.x, 2) + Math.pow(p.y - pos.y, 2));
                 return dist < (3 / scale);
@@ -308,14 +317,13 @@ export function PostureCanvas({
             }
 
             setIsPanning(true);
-            const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-            const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
             setLastMousePos({ x: clientX, y: clientY });
             setSelectedItem(null);
             return;
         }
 
         if (activeTool === 'point') {
+            if ('touches' in e && e.cancelable) e.preventDefault();
             const pointUnderMouse = photo.points.find(p => {
                 const dist = Math.sqrt(Math.pow(p.x - pos.x, 2) + Math.pow(p.y - pos.y, 2));
                 return dist < (3 / scale);
@@ -329,6 +337,7 @@ export function PostureCanvas({
             updateAnalysis({ points: [...photo.points, newPoint] });
             setSelectedItem({ type: 'point', id: newPoint.id });
         } else if (activeTool === 'line') {
+            if ('touches' in e && e.cancelable) e.preventDefault();
             const pointUnderMouse = photo.points.find(p => {
                 const dist = Math.sqrt(Math.pow(p.x - pos.x, 2) + Math.pow(p.y - pos.y, 2));
                 return dist < (3 / scale);
@@ -348,6 +357,7 @@ export function PostureCanvas({
                 }
             }
         } else if (activeTool === 'parallel') {
+            if ('touches' in e && e.cancelable) e.preventDefault();
             if (!selectedLineId) {
                 const basicLines = photo.lines.filter(l => l.type === 'basic');
                 let foundLineId = null;
@@ -387,11 +397,49 @@ export function PostureCanvas({
                 }
             }
         }
-    };
+    }, [getMousePos, activeTool, photo, setSelectedItem, updateAnalysis, selectedLineId, setSelectedLineId, selectedItem, scale]);
 
-    const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
-        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const handleMouseMove = useCallback((e: React.MouseEvent | React.TouchEvent | TouchEvent) => {
+        if ('touches' in e) {
+            if (e.touches.length > 0 && e.cancelable) {
+                // Prevent scrolling when interacting with canvas
+                e.preventDefault();
+            }
+
+            if (e.touches.length === 2 && isPinching && lastTouchDistance) {
+                const dist = Math.sqrt(
+                    Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) +
+                    Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2)
+                );
+                
+                const factor = dist / lastTouchDistance;
+                const newScale = Math.max(1, Math.min(scale * factor, 10));
+                
+                if (newScale !== scale) {
+                    const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                    
+                    const rect = canvasRef.current?.getBoundingClientRect();
+                    if (rect) {
+                        const mouseX = centerX - rect.left;
+                        const mouseY = centerY - rect.top;
+                        const ratio = newScale / scale;
+                        
+                        setOffset(prev => ({
+                            x: mouseX - (mouseX - prev.x) * ratio,
+                            y: mouseY - (mouseY - prev.y) * ratio
+                        }));
+                        setScale(newScale);
+                    }
+                }
+                setLastTouchDistance(dist);
+                return;
+            }
+        }
+
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
         if (isPanning) {
             const dx = clientX - lastMousePos.x;
             const dy = clientY - lastMousePos.y;
@@ -400,19 +448,41 @@ export function PostureCanvas({
             return;
         }
         if (draggingPointId) {
-            const pos = getMousePos(e);
+            const pos = getMousePos(clientX, clientY);
             updateAnalysis({
                 points: photo.points.map(p => 
                     p.id === draggingPointId ? { ...p, x: pos.x, y: pos.y } : p
                 )
             });
         }
-    };
+    }, [isPinching, lastTouchDistance, isPanning, lastMousePos, draggingPointId, getMousePos, scale, photo.points, updateAnalysis]);
 
-    const handleMouseUp = () => {
+    const handleMouseUp = useCallback(() => {
         setDraggingPointId(null);
         setIsPanning(false);
-    };
+        setIsPinching(false);
+        setLastTouchDistance(null);
+    }, []);
+
+    // Set up native touch listeners to ensure passive: false works
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const onTouchStart = (e: TouchEvent) => handleMouseDown(e);
+        const onTouchMove = (e: TouchEvent) => handleMouseMove(e);
+        const onTouchEnd = () => handleMouseUp();
+
+        canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+        canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+
+        return () => {
+            canvas.removeEventListener('touchstart', onTouchStart);
+            canvas.removeEventListener('touchmove', onTouchMove);
+            canvas.removeEventListener('touchend', onTouchEnd);
+        };
+    }, [handleMouseDown, handleMouseMove, handleMouseUp]);
 
     const getDistPointToSegment = (px: number, py: number, x1: number, y1: number, x2: number, y2: number) => {
         const A = px - x1;
@@ -440,9 +510,6 @@ export function PostureCanvas({
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
-                onTouchStart={handleMouseDown}
-                onTouchMove={handleMouseMove}
-                onTouchEnd={handleMouseUp}
                 className="object-contain"
                 style={{ 
                     maxWidth: '100vw', 
