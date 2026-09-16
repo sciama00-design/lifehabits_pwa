@@ -49,8 +49,6 @@ export default function CoachLayout() {
     // Combine for desktop sidebar
     const allNavItems = [...navItems, ...secondaryNavItems];
 
-    const isMoreActive = secondaryNavItems.some(item => location.pathname.startsWith(item.to));
-
     // Check if we are on the client detail page
     // Pattern: /coach/clients/:id (where id is not empty and not 'new' if that's a thing, but mostly just check depth)
     const isClientDetail = /^\/coach\/clients\/[^/]+$/.test(location.pathname);

@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     X, 
-    Library, 
     Settings, 
     LogOut, 
     ChevronRight,
