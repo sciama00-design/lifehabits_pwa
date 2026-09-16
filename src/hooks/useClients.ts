@@ -11,6 +11,7 @@ export type ClientWithProfile = ClientInfo & {
 export function useClients() {
     const { profile } = useAuth();
     const [clients, setClients] = useState<ClientWithProfile[]>([]);
+    const [archivedClients, setArchivedClients] = useState<ClientWithProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +24,6 @@ export function useClients() {
     async function fetchClients() {
         setLoading(true);
         try {
-            // Fetch clients via client_coaches for the current coach
             const { data, error } = await supabase
                 .from('client_coaches')
                 .select(`
@@ -34,7 +34,8 @@ export function useClients() {
                         avatar_url,
                         role,
                         clients_info:clients_info!clients_info_id_fkey (
-                            created_at
+                            created_at,
+                            archived_at
                         ),
                         subscription_plans:subscription_plans!subscription_plans_client_id_fkey (
                             end_date
@@ -45,37 +46,73 @@ export function useClients() {
 
             if (error) throw error;
 
-            const formattedClients = (data as any[]).map(item => {
+            const allFormatted = (data as any[]).map(item => {
                 const plans = item.client.subscription_plans || [];
-                // Find if any plan is active today or just get the latest end_date
                 const latestPlan = plans.length > 0
                     ? plans.reduce((prev: any, current: any) =>
                         (new Date(current.end_date) > new Date(prev.end_date)) ? current : prev
                     )
                     : null;
 
+                const clientsInfo = Array.isArray(item.client.clients_info)
+                    ? item.client.clients_info[0]
+                    : item.client.clients_info;
+
                 return {
                     id: item.client.id,
                     coach_id: profile!.id,
-                    created_at: item.client.clients_info?.created_at,
+                    created_at: clientsInfo?.created_at,
+                    archived_at: clientsInfo?.archived_at ?? null,
                     profiles: {
                         id: item.client.id,
                         email: item.client.email,
                         full_name: item.client.full_name,
                         avatar_url: item.client.avatar_url,
                         role: item.client.role,
-                        created_at: item.client.clients_info?.created_at
+                        created_at: clientsInfo?.created_at,
+                        privacy_accepted_at: null,
                     },
                     subscription_end: latestPlan?.end_date || null
                 };
             });
 
-            setClients(formattedClients as unknown as ClientWithProfile[]);
+            setClients(allFormatted.filter(c => !c.archived_at) as unknown as ClientWithProfile[]);
+            setArchivedClients(allFormatted.filter(c => !!c.archived_at) as unknown as ClientWithProfile[]);
         } catch (err: any) {
             console.error('Error fetching clients:', err);
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function archiveClient(clientId: string) {
+        try {
+            const { error } = await supabase
+                .from('clients_info')
+                .update({ archived_at: new Date().toISOString() })
+                .eq('id', clientId);
+            if (error) throw error;
+            await fetchClients();
+            return true;
+        } catch (err: any) {
+            setError(err.message);
+            return false;
+        }
+    }
+
+    async function unarchiveClient(clientId: string) {
+        try {
+            const { error } = await supabase
+                .from('clients_info')
+                .update({ archived_at: null })
+                .eq('id', clientId);
+            if (error) throw error;
+            await fetchClients();
+            return true;
+        } catch (err: any) {
+            setError(err.message);
+            return false;
         }
     }
 
@@ -175,9 +212,12 @@ export function useClients() {
 
     return {
         clients,
+        archivedClients,
         loading,
         error,
         createClient,
+        archiveClient,
+        unarchiveClient,
         linkColleague,
         unlinkColleague,
         fetchClientCoaches,

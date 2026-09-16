@@ -6,8 +6,7 @@ import {
     LayoutDashboard,
     LogOut,
     Settings,
-    Calendar,
-    Ruler
+    Calendar
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,11 +39,10 @@ export default function CoachLayout() {
         { to: '/coach/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/coach/clients', icon: Users, label: 'Clienti' },
         { to: '/coach/calendar', icon: Calendar, label: 'Calendario' },
+        { to: '/coach/library', icon: Library, label: 'Libreria' },
     ];
 
     const secondaryNavItems = [
-        { to: '/coach/posture', icon: Ruler, label: 'Analisi Posturale' },
-        { to: '/coach/library', icon: Library, label: 'Libreria' },
         { to: '/coach/settings', icon: Settings, label: 'Impostazioni' },
     ];
 
@@ -176,9 +174,12 @@ export default function CoachLayout() {
                                         </span>
                                     )}
                                 </button>
-                                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/20">
+                                <button
+                                    onClick={() => setIsMoreMenuOpen(true)}
+                                    className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/20 hover:bg-primary/30 transition-colors"
+                                >
                                     {profile?.full_name?.charAt(0) || 'C'}
-                                </div>
+                                </button>
                             </div>
                         </div>
                     </header>
@@ -204,8 +205,6 @@ export default function CoachLayout() {
                 <MobileBottomNav 
                     items={navItems} 
                     isVisible={isNavVisible} 
-                    onMoreClick={() => setIsMoreMenuOpen(true)}
-                    isMoreActive={isMoreActive}
                 />
             </div>
 

@@ -4,10 +4,7 @@ import {
     Settings, 
     LogOut, 
     ChevronRight,
-    LayoutGrid,
-    Play,
-    Calendar,
-    Leaf
+    User,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -28,12 +25,10 @@ export function ClientMoreMenu({ isOpen, onClose, profile }: ClientMoreMenuProps
         navigate('/login');
     };
 
-    const menuItems = [
-        { to: '/habits', icon: Leaf, label: 'Abitudini', description: 'Monitora le tue abitudini' },
-        { to: '/calendar', icon: Calendar, label: 'Calendario', description: 'I tuoi appuntamenti' },
-        { to: '/videos', icon: Play, label: 'Video', description: 'Libreria video esercizi' },
-        { to: '/profile', icon: Settings, label: 'Profilo', description: 'Gestisci le tue impostazioni' },
-    ];
+    const handleSettings = () => {
+        onClose();
+        navigate('/profile');
+    };
 
     return (
         <AnimatePresence>
@@ -60,10 +55,10 @@ export function ClientMoreMenu({ isOpen, onClose, profile }: ClientMoreMenuProps
                         <div className="flex items-center justify-between p-6 border-b border-border bg-card/30">
                             <div>
                                 <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-1 flex items-center gap-1.5">
-                                    <LayoutGrid className="h-3.5 w-3.5" /> Menu
+                                    <User className="h-3.5 w-3.5" /> Account
                                 </h3>
                                 <h2 className="text-xl font-black italic tracking-tighter uppercase text-foreground">
-                                    Altre <span className="text-primary">Opzioni</span>
+                                    Il tuo <span className="text-primary">Profilo</span>
                                 </h2>
                             </div>
                             <button
@@ -82,35 +77,26 @@ export function ClientMoreMenu({ isOpen, onClose, profile }: ClientMoreMenuProps
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="font-bold text-foreground truncate">{profile?.full_name || 'Atleta'}</p>
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">Atleta</p>
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">{profile?.email || ''}</p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Navigation Items */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                            {menuItems.map((item) => (
-                                <NavLink
-                                    key={item.to}
-                                    to={item.to}
-                                    onClick={onClose}
-                                    className={({ isActive }) => `
-                                        w-full flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300
-                                        ${isActive 
-                                            ? 'bg-primary border-primary shadow-lg shadow-primary/20 text-primary-foreground' 
-                                            : 'bg-card border-border text-foreground hover:bg-muted/50'}
-                                    `}
-                                >
-                                    <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/10 transition-colors">
-                                        <item.icon className="h-5 w-5" />
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <p className="text-sm font-bold leading-tight">{item.label}</p>
-                                        <p className="text-[10px] opacity-60 font-medium leading-tight mt-0.5">{item.description}</p>
-                                    </div>
-                                    <ChevronRight className="h-4 w-4 opacity-40" />
-                                </NavLink>
-                            ))}
+                        {/* Actions */}
+                        <div className="flex-1 p-4 space-y-2">
+                            <button
+                                onClick={handleSettings}
+                                className="w-full flex items-center gap-4 p-4 rounded-2xl border bg-card border-border text-foreground hover:bg-muted/50 transition-all duration-300"
+                            >
+                                <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center flex-shrink-0">
+                                    <Settings className="h-5 w-5" />
+                                </div>
+                                <div className="flex-1 text-left">
+                                    <p className="text-sm font-bold leading-tight">Impostazioni</p>
+                                    <p className="text-[10px] opacity-60 font-medium leading-tight mt-0.5">Profilo, tema, notifiche</p>
+                                </div>
+                                <ChevronRight className="h-4 w-4 opacity-40" />
+                            </button>
                         </div>
 
                         {/* Footer / Logout */}
