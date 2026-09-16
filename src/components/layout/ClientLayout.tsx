@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { Home, Settings, Play, Leaf, Calendar } from 'lucide-react';
+import { Home, Play, Leaf, Calendar } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import clsx from 'clsx';
 import { MobileBottomNav } from './MobileBottomNav';
@@ -26,17 +26,10 @@ export default function ClientLayout() {
         { to: '/habits', icon: Leaf, label: 'Abitudini' },
         { to: '/calendar', icon: Calendar, label: 'Calendario' },
         { to: '/videos', icon: Play, label: 'Video' },
-        { to: '/profile', icon: Settings, label: 'Profilo' },
     ];
 
-    // For mobile we only show a few items + More
-    const mobileNavItems = [
-        { to: '/', icon: Home, label: 'Home' },
-        { to: '/habits', icon: Leaf, label: 'Abitudini' },
-        { to: '/calendar', icon: Calendar, label: 'Calendario' },
-    ];
-
-    const isMoreActive = !mobileNavItems.some(item => location.pathname === item.to) && location.pathname !== '/';
+    // Mobile nav: stesse 4 voci
+    const mobileNavItems = navItems;
 
     // Scroll-to-hide logic
     useEffect(() => {
@@ -93,9 +86,12 @@ export default function ClientLayout() {
                             Life<span className="text-primary italic">Habits</span>
                         </h1>
                         <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/20">
+                            <button
+                                onClick={() => setIsMoreMenuOpen(true)}
+                                className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/20 hover:bg-primary/30 transition-colors"
+                            >
                                 {profile?.full_name?.charAt(0) || 'C'}
-                            </div>
+                            </button>
                         </div>
                     </div>
                 </header>
@@ -117,8 +113,6 @@ export default function ClientLayout() {
             <MobileBottomNav 
                 items={mobileNavItems} 
                 isVisible={isNavVisible} 
-                onMoreClick={() => setIsMoreMenuOpen(true)}
-                isMoreActive={isMoreActive}
             />
 
             <ClientMoreMenu

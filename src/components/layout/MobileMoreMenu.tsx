@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     X, 
-    Ruler, 
     Library, 
     Settings, 
     LogOut, 
@@ -28,8 +27,6 @@ export function MobileMoreMenu({ isOpen, onClose, profile }: MobileMoreMenuProps
     };
 
     const menuItems = [
-        { to: '/coach/posture', icon: Ruler, label: 'Analisi Posturale', description: 'Misura e valuta la postura' },
-        { to: '/coach/library', icon: Library, label: 'Libreria', description: 'Gestisci esercizi e programmi' },
         { to: '/coach/settings', icon: Settings, label: 'Impostazioni', description: 'Configura il tuo profilo' },
     ];
 
