@@ -33,6 +33,7 @@ export interface ClientInfo {
     id: string;
     coach_id: string;
     created_at: string;
+    archived_at: string | null;
     profiles?: Profile; // Hydrated
 }
 

@@ -27,7 +27,8 @@ import {
     CalendarDays,
     Leaf,
     Check,
-    Bell
+    Bell,
+    Archive
 } from 'lucide-react';
 import { ClientNotificationsManager } from '@/components/coach/ClientNotificationsManager';
 import { UnifiedCalendar } from '@/components/shared/UnifiedCalendar';
@@ -86,8 +87,20 @@ export default function CoachClientDetail() {
         linkColleague,
         unlinkColleague,
         fetchClientCoaches,
-        searchCoaches
+        searchCoaches,
+        archiveClient
     } = useClients();
+
+    const [isArchiving, setIsArchiving] = useState(false);
+
+    const handleArchiveClient = async () => {
+        if (!clientId) return;
+        if (!confirm('Vuoi archiviare questo cliente? Potrai riattivarlo in qualsiasi momento dalla lista clienti.')) return;
+        setIsArchiving(true);
+        const ok = await archiveClient(clientId);
+        setIsArchiving(false);
+        if (ok) navigate('/coach/clients');
+    };
 
     // Local State
     const [activeTab, setActiveTab] = useState<Tab>('anagrafica');
@@ -313,16 +326,26 @@ export default function CoachClientDetail() {
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={() => {
-                                        if (confirm('Sei sicuro di voler eliminare questo utente?')) {
-                                            supabase.from('profiles').delete().eq('id', clientId).then(() => navigate('/coach/clients'));
-                                        }
-                                    }}
-                                    className="w-full mt-2 py-3 rounded-xl bg-destructive/10 text-xs font-black uppercase tracking-widest text-destructive hover:bg-destructive hover:text-white transition-colors border border-destructive/20"
-                                >
-                                    Elimina Utente
-                                </button>
+                                <div className="flex flex-col gap-2 mt-2">
+                                    <button
+                                        onClick={handleArchiveClient}
+                                        disabled={isArchiving}
+                                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-500/10 text-xs font-black uppercase tracking-widest text-amber-500 hover:bg-amber-500 hover:text-white transition-colors border border-amber-500/20 disabled:opacity-50"
+                                    >
+                                        <Archive className="h-4 w-4" />
+                                        {isArchiving ? 'Archiviazione...' : 'Archivia Cliente'}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('Sei sicuro di voler eliminare questo utente?')) {
+                                                supabase.from('profiles').delete().eq('id', clientId).then(() => navigate('/coach/clients'));
+                                            }
+                                        }}
+                                        className="w-full py-3 rounded-xl bg-destructive/10 text-xs font-black uppercase tracking-widest text-destructive hover:bg-destructive hover:text-white transition-colors border border-destructive/20"
+                                    >
+                                        Elimina Utente
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Plans Card */}
