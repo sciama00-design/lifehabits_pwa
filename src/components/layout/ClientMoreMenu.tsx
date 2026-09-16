@@ -6,7 +6,6 @@ import {
     ChevronRight,
     User,
 } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
