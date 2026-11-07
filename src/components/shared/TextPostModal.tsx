@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { X, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
 
 interface TextPostModalProps {
     isOpen: boolean;
@@ -88,7 +89,7 @@ export function TextPostModal({ isOpen, onClose, title, content, author, date, i
                     <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-8 custom-scrollbar">
                         <div
                             className="prose dark:prose-invert prose-sm sm:prose-base max-w-none leading-relaxed text-muted-foreground/90"
-                            dangerouslySetInnerHTML={{ __html: content }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(content) }}
                         />
                     </div>
 

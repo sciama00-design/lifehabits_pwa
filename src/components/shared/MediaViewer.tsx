@@ -6,6 +6,7 @@ import Player from '@vimeo/player';
 import clsx from 'clsx';
 import { ProtectedYouTubePlayer } from './ProtectedYouTubePlayer';
 import { extractYouTubeId } from '@/lib/youtubeProtection';
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
 
 interface MediaViewerProps {
     isOpen: boolean;
@@ -403,7 +404,7 @@ export function MediaViewer({ isOpen, onClose, type, url, title, description, th
                             <div className="w-full max-w-3xl px-6 sm:px-8 pb-8 sm:pb-12 overflow-y-auto max-h-[25vh] custom-scrollbar">
                                 <div
                                     className="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed"
-                                    dangerouslySetInnerHTML={{ __html: description }}
+                                    dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(description) }}
                                 />
                             </div>
                         )}

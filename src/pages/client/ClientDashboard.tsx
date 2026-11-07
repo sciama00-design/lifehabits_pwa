@@ -12,6 +12,7 @@ import type { BoardPost } from '@/types/database';
 import { useDailyFeedbacks } from '@/hooks/useDailyFeedbacks';
 import { MessageSquare, CheckCircle2 } from 'lucide-react';
 import { EmojiTextarea } from '@/components/shared/EmojiTextarea';
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
 
 // ─── Gradient Block Component ────────────────────────────────────────
 interface GradientBlockProps {
@@ -201,7 +202,7 @@ export default function ClientDashboard() {
                                     <h4 className="text-xs font-bold text-white mb-1 line-clamp-2">{post.title}</h4>
                                     <div
                                         className="text-[10px] text-white/60 leading-relaxed line-clamp-2"
-                                        dangerouslySetInnerHTML={{ __html: post.content }}
+                                        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(post.content) }}
                                     />
                                 </div>
                             </motion.div>

@@ -7,6 +7,7 @@ import { uploadFile } from '@/lib/storage';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
 
 export default function CoachBoard() {
     const { posts, loading, createPost, updatePost, deletePost } = useBoardPosts();
@@ -455,7 +456,7 @@ export default function CoachBoard() {
                                 <h4 className="text-xs font-bold text-white mb-1 line-clamp-2">{post.title}</h4>
                                 <div
                                     className="text-[10px] text-white/60 leading-relaxed line-clamp-2 flex-1"
-                                    dangerouslySetInnerHTML={{ __html: post.content }}
+                                    dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(post.content) }}
                                 />
 
                                 {/* Meta */}

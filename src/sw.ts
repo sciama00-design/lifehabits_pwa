@@ -10,6 +10,17 @@ precacheAndRoute(self.__WB_MANIFEST)
 self.skipWaiting()
 clientsClaim()
 
+function safeNotificationUrl(value: unknown): string {
+    if (typeof value !== 'string' || value.length > 2048) return '/'
+    try {
+        const url = new URL(value || '/', self.location.origin)
+        if (url.origin !== self.location.origin || url.username || url.password) return '/'
+        return /^[a-z][a-z\d+.-]*:/i.test(value) ? url.href : `${url.pathname}${url.search}${url.hash}`
+    } catch {
+        return '/'
+    }
+}
+
 // ─────────────────────────────────────────────────────────────
 // PUSH NOTIFICATIONS — iOS/Safari compatible
 // IMPORTANT: Do NOT add badge, vibrate, image, or actions.
@@ -35,7 +46,7 @@ self.addEventListener('push', (event) => {
         tag: 'lifehabits-notification',
         requireInteraction: false,
         data: {
-            url: data.url || '/',
+            url: safeNotificationUrl(data.url),
             dateOfArrival: Date.now()
         },
     };
@@ -49,7 +60,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close()
-    const urlToOpen = (event.notification.data as any)?.url || '/';
+    const urlToOpen = safeNotificationUrl((event.notification.data as any)?.url);
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {

@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import clsx from 'clsx';
 import { MediaViewer } from './MediaViewer';
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
 
 export interface ContentCardProps {
     item: {
@@ -242,7 +243,7 @@ export function ContentCard({
 
                     {item.description && (
                         <div className="text-xs text-muted-foreground line-clamp-2 mb-4 prose dark:prose-invert prose-xs prose-p:leading-normal">
-                            <div dangerouslySetInnerHTML={{ __html: item.description }} />
+                            <div dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(item.description) }} />
                         </div>
                     )}
 

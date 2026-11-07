@@ -2,6 +2,17 @@
 // Imported via workbox.importScripts in vite.config.ts
 // iOS/Safari compatible: no badge, vibrate, or image options
 
+function safeNotificationUrl(value) {
+    if (typeof value !== 'string' || value.length > 2048) return '/';
+    try {
+        const url = new URL(value || '/', self.location.origin);
+        if (url.origin !== self.location.origin || url.username || url.password) return '/';
+        return /^[a-z][a-z\d+.-]*:/i.test(value) ? url.href : `${url.pathname}${url.search}${url.hash}`;
+    } catch {
+        return '/';
+    }
+}
+
 self.addEventListener('push', (event) => {
     let data = { title: 'LifeHabits', body: 'Nuova notifica', url: '/' };
 
@@ -23,7 +34,7 @@ self.addEventListener('push', (event) => {
         icon: '/pwa-192x192.png',
         tag: 'lifehabits-notification',
         data: {
-            url: data.url || '/',
+            url: safeNotificationUrl(data.url),
             dateOfArrival: Date.now()
         },
         requireInteraction: false,
@@ -38,12 +49,12 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    const urlToOpen = event.notification.data?.url || '/';
+    const urlToOpen = safeNotificationUrl(event.notification.data?.url);
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
             for (const client of windowClients) {
-                if (client.url === urlToOpen && 'focus' in client) {
+                if (client.url === new URL(urlToOpen, self.location.origin).href && 'focus' in client) {
                     return client.focus();
                 }
             }

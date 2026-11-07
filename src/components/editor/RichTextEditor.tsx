@@ -15,7 +15,7 @@ interface RichTextEditorProps {
 export function RichTextEditor({ value, onChange, editable = true }: RichTextEditorProps) {
     const editor = useEditor({
         extensions: [
-            StarterKit,
+            StarterKit.configure({ link: false }),
             Link.configure({
                 openOnClick: false,
                 HTMLAttributes: {
@@ -40,7 +40,7 @@ export function RichTextEditor({ value, onChange, editable = true }: RichTextEdi
 
     useEffect(() => {
         if (editor && value !== editor.getHTML()) {
-            editor.commands.setContent(value)
+            editor.commands.setContent(value, { emitUpdate: false })
         }
     }, [value, editor])
 
