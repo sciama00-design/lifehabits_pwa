@@ -2,6 +2,9 @@
 .env
 .env.*
 
+# Private release backups contain user data and authentication records.
+.security-backups/
+
 # Logs
 logs
 *.log

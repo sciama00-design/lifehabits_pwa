@@ -35,40 +35,29 @@ if (!supabaseUrl || !supabaseKey) {
     process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const accessToken = process.env.SUPABASE_USER_ACCESS_TOKEN;
+if (!accessToken) {
+    console.error('Set SUPABASE_USER_ACCESS_TOKEN to a signed-in user access token.');
+    process.exit(1);
+}
 
-const targetEmail = 'cacciamani.matteo@outlook.com';
+const supabase = createClient(supabaseUrl, supabaseKey, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: { autoRefreshToken: false, persistSession: false },
+});
 
 async function main() {
-    console.log(`Looking up user: ${targetEmail}`);
-
-    // Try to find user in profiles
-    const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .eq('email', targetEmail)
-        .single();
-
-    if (profileError) {
-        console.error('Error finding user in profiles:', profileError.message);
-        // Fallback: Check if we can find them in push_subscriptions directly?
-        // No, push_subscriptions uses user_id, doesn't have email.
+    const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
+    if (authError || !authData.user) {
+        console.error('The supplied access token is invalid or expired.');
         process.exit(1);
     }
-
-    if (!profiles) {
-        console.error('User not found in profiles.');
-        process.exit(1);
-    }
-
-    const userId = profiles.id;
-    console.log(`Found user ID: ${userId}`);
 
     console.log('Sending test notification...');
     const { data, error } = await supabase.functions.invoke('push-dispatcher', {
         body: {
             type: 'direct',
-            user_id: userId,
+            user_id: authData.user.id,
             title: 'Test Debug 🕵️‍♂️',
             body: 'Questo è un test dal sistema di debug.',
             url: '/profile' // Test URL

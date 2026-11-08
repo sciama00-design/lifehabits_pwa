@@ -79,13 +79,15 @@ export function usePushNotifications() {
                 console.log("Unregistered service worker:", reg.scope);
             }
 
-            // 3. Clear from DB (optional but keeps things clean)
-            if (user) {
-                await supabase
+            // 3. Remove only this device; other devices keep their registrations.
+            if (user && sub) {
+                const { error: deleteError } = await supabase
                     .from('push_subscriptions')
                     .delete()
-                    .eq('user_id', user.id);
-                console.log("Cleared subscriptions from DB.");
+                    .eq('user_id', user.id)
+                    .eq('subscription->>endpoint', sub.endpoint);
+                if (deleteError) throw deleteError;
+                console.log("Cleared this device's subscription from DB.");
             }
 
             // 4. Force reload or wait for re-registration

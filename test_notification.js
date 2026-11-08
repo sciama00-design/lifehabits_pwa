@@ -1,8 +1,9 @@
 
-const https = require('https');
+import https from 'node:https';
 
 const url = 'https://gkbxiyzmtrxukpoaqdqn.supabase.co/functions/v1/push-scheduler';
-const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrYnhpeXptdHJ4dWtwb2FxZHFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MDY1NzcsImV4cCI6MjA4NjM4MjU3N30.BTN5qqCkDC4VkEt7LZWmDC3GQLCq30eXuuoYrKuJlWs';
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!serviceRoleKey) throw new Error('Set SUPABASE_SERVICE_ROLE_KEY in the environment');
 
 const data = JSON.stringify({
     timeOverride: '19:00'
@@ -12,8 +13,8 @@ const options = {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Length': data.length
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Length': Buffer.byteLength(data)
     }
 };
 

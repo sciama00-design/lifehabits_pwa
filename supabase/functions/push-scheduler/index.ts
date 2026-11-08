@@ -1,6 +1,9 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import webpush from 'npm:web-push@3.6.7'
+import { isValidTime, notificationWindow, resolvePushCaller } from '../_shared/push-policy.js'
+import { sendScheduledPush } from '../_shared/push-delivery.js'
+import { createServiceTokenVerifier } from '../_shared/service-auth.js'
 
 // Set VAPID keys from environment variables
 const vapidEmail = Deno.env.get('VAPID_EMAIL') || 'admin@example.com'
@@ -20,6 +23,7 @@ if (vapidPublicKey && vapidPrivateKey) {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+const verifyServiceToken = createServiceTokenVerifier(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY'))
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -40,32 +44,28 @@ Deno.serve(async (req) => {
         return new Response('ok', { headers: corsHeaders })
     }
 
-    try {
-        const { timeOverride } = await req.json().catch(() => ({}))
+    if (req.method !== 'POST') return createResponse({ error: 'Method not allowed' }, 405)
 
-        // Using Intl to get HH:MM in Rome time
-        const formatTime = (d: Date) => new Intl.DateTimeFormat('it-IT', {
-            timeZone: 'Europe/Rome',
-            hour: '2-digit',
-            minute: '2-digit',
-            hourCycle: 'h23'
-        }).format(d)
-        
-        const now = new Date()
-        const checkTimes = []
-        if (timeOverride) {
-            checkTimes.push(timeOverride)
-        } else {
-            // Check last 30 minutes to be safe with a 15-min cron
-            for (let i = 0; i < 31; i++) {
-                const pastTime = new Date(now.getTime() - i * 60000)
-                checkTimes.push(formatTime(pastTime))
-            }
+    try {
+        const caller = await resolvePushCaller(req, supabaseServiceRoleKey, supabase.auth, verifyServiceToken)
+        if (caller?.kind !== 'service') return createResponse({ error: 'Unauthorized' }, 401)
+        // Existing cron jobs may have no JSON body. Authentication above still applies.
+        const body = await req.json().catch(() => ({}))
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            return createResponse({ error: 'Invalid request' }, 400)
         }
+        const timeOverride = body?.timeOverride
+        if (timeOverride !== undefined && !isValidTime(timeOverride)) {
+            return createResponse({ error: 'Invalid timeOverride' }, 400)
+        }
+
+        const now = new Date()
+        const window = notificationWindow(now, timeOverride)
+        const checkTimes = [...new Set(window.map(slot => slot.time))]
 
         console.log(`Processing notifications for window: ${checkTimes[checkTimes.length-1]} to ${checkTimes[0]}`)
 
-        // 1. Fetch Rules matching any time in the window
+        // 1. Fetch rules for the window
         const { data: rules, error: rulesError } = await supabase
             .from('notification_rules')
             .select('id, coach_id, client_id, message, scheduled_time')
@@ -78,18 +78,46 @@ Deno.serve(async (req) => {
             })
         }
 
-        // 2. Filter out already sent rules TODAY
-        const todayStr = now.toISOString().split('T')[0]
-        const ruleIds = rules.map(r => r.id)
-        
-        const { data: sentLogs } = await supabase
-            .from('notification_sent_log')
-            .select('rule_id')
-            .in('rule_id', ruleIds)
-            .eq('sent_date', todayStr)
+        // Validate persisted rules before service_role sends, including rules created before this check.
+        const coachIds = [...new Set(rules.map(rule => rule.coach_id))]
+        const { data: coaches, error: coachesError } = await supabase
+            .from('profiles').select('id').in('id', coachIds).eq('role', 'coach')
+        if (coachesError) throw coachesError
+        const validCoachIds = new Set((coaches ?? []).map(coach => coach.id))
+        const candidateRules = rules.filter(rule => validCoachIds.has(rule.coach_id))
+        const validRelationships = new Set<string>()
+        if (candidateRules.length) {
+            const { data: links, error: linksError } = await supabase
+                .from('client_coaches').select('client_id, coach_id').in('coach_id', [...validCoachIds])
+            if (linksError) throw linksError
+            for (const link of links ?? []) validRelationships.add(`${link.coach_id}:${link.client_id}`)
 
-        const sentRuleIds = new Set(sentLogs?.map(l => l.rule_id) || [])
-        const rulesToSend = rules.filter(r => !sentRuleIds.has(r.id))
+            const { data: directClients, error: directClientsError } = await supabase
+                .from('clients_info').select('id, coach_id').in('coach_id', [...validCoachIds])
+            if (directClientsError) throw directClientsError
+            for (const client of directClients ?? []) validRelationships.add(`${client.coach_id}:${client.id}`)
+        }
+        const authorizedRules = candidateRules.filter(rule => rule.client_id
+            ? validRelationships.has(`${rule.coach_id}:${rule.client_id}`)
+            : [...validRelationships].some(link => link.startsWith(`${rule.coach_id}:`)))
+        if (authorizedRules.length === 0) {
+            return createResponse({ message: 'No authorized rules in this window' })
+        }
+
+        // A catch-up window can cross midnight: deduplicate by the slot's Rome date.
+        const ruleIds = authorizedRules.map(r => r.id)
+        
+        const { data: sentLogs, error: sentLogsError } = await supabase
+            .from('notification_sent_log')
+            .select('rule_id, sent_date')
+            .in('rule_id', ruleIds)
+            .in('sent_date', [...new Set(window.map(slot => slot.date))])
+
+        if (sentLogsError) throw sentLogsError
+        const sentRuleIds = new Set(sentLogs?.map(l => `${l.rule_id}:${l.sent_date}`) || [])
+        const rulesToSend = authorizedRules.flatMap(rule => window
+            .filter(slot => slot.time === rule.scheduled_time.slice(0, 5) && !sentRuleIds.has(`${rule.id}:${slot.date}`))
+            .map(slot => ({ rule, sentDate: slot.date })))
 
         if (rulesToSend.length === 0) {
             return new Response(JSON.stringify({ message: 'All rules in window already sent today' }), {
@@ -103,46 +131,39 @@ Deno.serve(async (req) => {
         let failures = 0
 
         // 3. Process each rule
-        for (const rule of rulesToSend) {
+        for (const { rule, sentDate } of rulesToSend) {
             let targetUserIds: string[] = []
 
             // If Personal Rule
             if (rule.client_id) {
                 targetUserIds = [rule.client_id]
             } else {
-                // If Global Rule: Find all clients of this coach
-                const { data: directClients } = await supabase
-                    .from('clients_info')
-                    .select('id')
-                    .eq('coach_id', rule.coach_id)
-
-                const { data: linkedClients } = await supabase
-                    .from('client_coaches')
-                    .select('client_id')
-                    .eq('coach_id', rule.coach_id)
-
-                const directIds = directClients?.map(c => c.id) || []
-                const linkedIds = linkedClients?.map(c => c.client_id) || []
-                targetUserIds = [...new Set([...directIds, ...linkedIds])]
+                targetUserIds = [...new Set([...validRelationships]
+                    .filter(link => link.startsWith(`${rule.coach_id}:`))
+                    .map(link => link.slice(rule.coach_id.length + 1)))]
             }
 
             if (targetUserIds.length === 0) continue
 
             // Filter targets who have notifications enabled
-            const { data: enabledSettings } = await supabase
+            const { data: enabledSettings, error: settingsError } = await supabase
                 .from('alert_settings')
                 .select('user_id')
                 .in('user_id', targetUserIds)
                 .eq('is_enabled', true)
 
+            if (settingsError) throw settingsError
+
             const finalTargetIds = enabledSettings?.map(s => s.user_id) || []
             if (finalTargetIds.length === 0) continue
 
             // Fetch Subscriptions for these users
-            const { data: subscriptions } = await supabase
+            const { data: subscriptions, error: subscriptionsError } = await supabase
                 .from('push_subscriptions')
-                .select('user_id, subscription')
+                .select('id, user_id, subscription')
                 .in('user_id', finalTargetIds)
+
+            if (subscriptionsError) throw subscriptionsError
 
             if (!subscriptions || subscriptions.length === 0) continue
 
@@ -152,36 +173,27 @@ Deno.serve(async (req) => {
                 body: rule.message,
             })
 
-            const promises = subscriptions.map(async (sub) => {
-                try {
-                    await webpush.sendNotification(
-                        sub.subscription,
-                        payload
-                    )
-                    return { success: true }
-                } catch (err: any) {
-                    if (err.statusCode === 410 || err.statusCode === 404) {
-                        await supabase
-                            .from('push_subscriptions')
-                            .delete()
-                            .eq('user_id', sub.user_id)
-                    }
-                    return { success: false, error: err }
-                }
-            })
+            const promises = subscriptions.map(sub => sendScheduledPush(supabase, sub, payload,
+                `rule:${rule.id}:${sentDate}:${sub.id}`,
+                (subscription, data) => webpush.sendNotification(subscription, data, { timeout: 15000 })))
 
             const results = await Promise.all(promises)
             const sentCount = results.filter(r => r.success).length
             notificationsSent += sentCount
-            failures += results.filter(r => !r.success).length
+            failures += results.filter(r => r.retryable).length
 
-            // 4. Log as sent for today (even if some devices failed, we consider the rule "processed")
-            await supabase
+            // Pending claims or transient errors remain retryable; delivered
+            // devices retain their receipt and are skipped by subsequent ticks.
+            if (results.some(result => result.retryable || result.pending)) continue
+
+            // 4. Record the rule processed, preserving the existing per-rule behavior.
+            const { error: logError } = await supabase
                 .from('notification_sent_log')
-                .insert({
+                .upsert({
                     rule_id: rule.id,
-                    sent_date: todayStr
-                })
+                    sent_date: sentDate
+                }, { onConflict: 'rule_id,sent_date', ignoreDuplicates: true })
+            if (logError) throw logError
         }
 
         return createResponse({
@@ -189,10 +201,10 @@ Deno.serve(async (req) => {
             timesChecked: checkTimes,
             sent: notificationsSent,
             failed: failures
-        })
+        }, failures ? 502 : 200)
 
-    } catch (err: any) {
+    } catch (err) {
         console.error('Push Scheduler Error:', err)
-        return createResponse({ error: err.message }, 500)
+        return createResponse({ error: 'Notification processing failed' }, 500)
     }
 })

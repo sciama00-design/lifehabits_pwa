@@ -2,3 +2,8 @@ project_id = "gkbxiyzmtrxukpoaqdqn"
 
 [functions.push-scheduler]
 verify_jwt = true
+
+[functions.push-dispatcher]
+# Preserve the deployed gateway setting. The handler verifies user tokens with
+# auth.getUser() and authorizes every operation before using service_role.
+verify_jwt = false
