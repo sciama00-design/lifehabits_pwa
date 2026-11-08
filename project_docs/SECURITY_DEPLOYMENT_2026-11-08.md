@@ -1,6 +1,6 @@
 # Rilascio sicurezza — 8 novembre 2026
 
-**Supabase pubblicato e verificato. Frontend pronto localmente, pubblicazione GitHub/Cloudflare ancora impedita dalle credenziali assenti.** L'utente ha autorizzato esplicitamente il deploy e ha deciso che la mancata ricezione sul PC non costituisce un blocco. Nessun invito/reset password, logout, rotazione JWT/VAPID, cambio dominio o ripristino globale delle sottoscrizioni.
+**Rilascio applicativo completato: Supabase e frontend pubblicati e verificati.** L'utente ha autorizzato esplicitamente il deploy e ha deciso che la mancata ricezione sul PC non costituisce un blocco. Nessun invito/reset password, logout, rotazione JWT/VAPID, cambio dominio o ripristino globale delle sottoscrizioni.
 
 ## Stato Supabase effettivo
 
@@ -44,17 +44,25 @@ Un tentativo precedente di aggiungere temporaneamente un ramo preflight allo sch
 
 ## Pacchetto frontend e continuità
 
-Il commit frontend `e549877` resta nella storia senza riscritture. Il working tree aggiunge la correzione di `repairNotifications`: il ripristino manuale elimina solo l'endpoint del dispositivo corrente; con endpoint locale assente non cancella registrazioni di altri dispositivi. Il test del vero hook ha fallito prima della correzione e ora passa in entrambi i casi.
+Il commit frontend `e549877` resta nella storia senza riscritture. Il commit applicativo `b92ffd9327df288ebd64dfbf11f3bf02adc99695` include la correzione di `repairNotifications`: il ripristino manuale elimina solo l'endpoint del dispositivo corrente; con endpoint locale assente non cancella registrazioni di altri dispositivi. Il test del vero hook ha fallito prima della correzione e ora passa in entrambi i casi.
 
 Le prove precedenti restano nei [risultati di backup/ripristino](SECURITY_BACKUP_RESTORE_2026-11-08.md): 53 tabelle ripristinate, 87 media verificati, login/refresh/provisioning nella stessa versione Auth di produzione prima/dopo candidato e rollback, 573 letture mirate sul roster, aggiornamento PWA sullo stesso origin senza perdita del campo non salvato.
 
 Rieseguiti suite sicurezza e build. La suite push aggiornata contiene sette test di policy/autenticazione, quindici test handler/protocollo/SW e due test del ripristino dispositivo. Il lint globale mantiene problemi preesistenti e non è dichiarato superato.
 
-Il push GitHub di verifica restituisce `could not read Username ... terminal prompts disabled`; il plugin GitHub risulta non installato. Manca quindi la connessione, **non un'ulteriore autorizzazione conversazionale al deploy**. Main remoto resta `b976ea7` all'ultima lettura, la preview precedente `e549877`. Cloudflare restituisce 403 da questo ambiente; non si dichiara il nuovo frontend pubblicato o verificato sul dominio di produzione.
+L'accesso GitHub è stato autorizzato tramite il flusso ufficiale GitHub CLI. Il commit applicativo **`b92ffd9327df288ebd64dfbf11f3bf02adc99695`** è stato pubblicato su `main` con push ordinario, dal precedente `b976ea7`, senza riscritture. Il check Cloudflare Pages è **success/completed**, deployment **`9aa2ecdf-d7bd-424d-8c42-8a6cec99d623`**, [dettagli Cloudflare](https://dash.cloudflare.com/?to=/db5defef9735c9a338f38e9f496b496b/pages/view/lifehabits-pwa/9aa2ecdf-d7bd-424d-8c42-8a6cec99d623).
+
+Controlli HTTP dopo il deploy su `https://lifehabits-pwa.pages.dev`: `/`, `/login`, `/sw.js`, `/manifest.webmanifest`, entry JavaScript, CSS e registrazione SW tutti **200**. JavaScript, CSS e registrazione SW coincidono **byte per byte** con la build locale verificata. JavaScript pubblicato: `/assets/index-CLuzHoh5.js`, SHA-256 `b145af9db7688623da55bbe15f42d1669acfa4504fb1fd48d015ff201fe0cd63`. Evidenza privata: `.security-backups/frontend-production-b92ffd9.json`. Le risposte 403 osservate prima e con alcuni client HTTP non sono state interpretate come indisponibilità degli utenti: il controllo effettivo con curl sul dominio è riuscito.
+
+Smoke test Chromium sulla pagina `/login` di produzione con profilo nuovo: campi email e password renderizzati, **zero eccezioni JavaScript non gestite**. Nessun login reale o invio push eseguito. Il passaggio PWA con sessione/stato persistente resta coperto dalle prove sullo stesso origin in ambiente isolato, senza attribuire a questo smoke test anonimo una verifica delle sessioni reali.
+
+Controllo Supabase ripetuto alle **02:43 Europe/Rome**: scheduler v18 e dispatcher v11 ACTIVE; ultimi otto cicli cron, dalle 02:36 alle 02:43, HTTP **200**, nessun timeout o errore. Non sono state eseguite altre migrazioni, rotazioni o notifiche di prova.
+
+Il successivo commit di chiusura aggiorna soltanto questi documenti, senza modificare gli asset applicativi.
 
 ## Recupero e rischi residui
 
-Archivio privato cifrato e verificato: `.security-backups/release-20261108T0056.tar.gz.enc`; chiave separata e istruzioni nel rapporto di backup. Il rollback SQL ripristina configurazione e permessi mantenendo le attività nuove. Per le funzioni sono conservati i sorgenti pre-deploy e i gateway. Il codice frontend precedente è conservato nel bundle Git e negli artefatti; il rollback Cloudflare effettivo richiede accesso al hosting/deployment.
+Archivio privato cifrato e verificato: `.security-backups/release-20261108T0056.tar.gz.enc`; chiave separata e istruzioni nel rapporto di backup. Il rollback SQL ripristina configurazione e permessi mantenendo le attività nuove. Per le funzioni sono conservati i sorgenti pre-deploy e i gateway. Il codice frontend precedente è conservato nel bundle Git e negli artefatti; il precedente deployment Cloudflare **`4a5a2c87-1d58-4f71-a665-3f1dd968f3ae`**, commit `b976ea709dc01cfe2103a2c94e535744fe0908ec`, è stato identificato tramite il check storico Cloudflare riuscito. Riferimento: [deployment precedente](https://dash.cloudflare.com/?to=/db5defef9735c9a338f38e9f496b496b/pages/view/lifehabits-pwa/4a5a2c87-1d58-4f71-a665-3f1dd968f3ae). Il rollback immediato del deployment richiede l'accesso Cloudflare; in alternativa l'accesso GitHub ora verificato consente un normale commit di ripristino del frontend con rebuild. Non è stato eseguito un rollback sulla produzione sana soltanto per provarlo.
 
 Le ricevute aggiuntive vanno conservate durante un rollback ordinario. Tornare alle vecchie policy/funzioni riapre le rispettive vulnerabilità: usarlo solo come recupero di emergenza. Non ripristinare il dump dei dati sopra la produzione attiva.
 

@@ -1,5 +1,7 @@
 # Percorso di rilascio delle correzioni
 
+> **Chiusura del rilascio, 8 novembre 2026:** Supabase e frontend pubblicati. Commit applicativo `b92ffd9` su `main`; Cloudflare Pages deployment `9aa2ecdf-d7bd-424d-8c42-8a6cec99d623` riuscito. Dominio produzione, login, SW, manifest e asset HTTP 200; asset applicativi identici alla build verificata. Cron ancora HTTP 200. Backup/rollback, limiti e riferimenti di recupero nel [rapporto finale](SECURITY_DEPLOYMENT_2026-11-08.md). La correzione del ripristino notifiche per singolo dispositivo è ora distribuita. Nessun reset, logout, cambio di chiavi o richiesta generale di nuovi permessi. I precedenti blocchi GitHub e stati «non pubblicato» sotto sono **cronologia superata**, non lavoro ancora da eseguire.
+
 > **Stato attuale: Supabase rilasciato e verificato.** Migrazioni ricevute e RLS applicate, scheduler v18 e dispatcher v11 attivi, cron HTTP 200. [Dettagli del rilascio](SECURITY_DEPLOYMENT_2026-11-08.md). Frontend pronto; push GitHub impedito dall'autenticazione assente. L'utente ha già autorizzato la pubblicazione e accettato di separare il problema del PC.
 
 > **Ultima verifica dell'8 novembre:** [pacchetto di backup e prove di rollback](SECURITY_BACKUP_RESTORE_2026-11-08.md) completato per il perimetro documentato, inclusa continuità Auth HTTP e conservazione delle nuove attività. Nessuna pubblicazione. Prima del rilascio rimangono la prova della credenziale cron candidata, i dispositivi dedicati e l'identificazione del deployment Cloudflare recuperabile.
